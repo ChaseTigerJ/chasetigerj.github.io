@@ -294,7 +294,7 @@ window.TIG_UFO = '<svg viewBox="0 0 160 100">'+
     '<g class="ufo-lights"><circle cx="34" cy="46" r="3.2"/><circle cx="52" cy="50" r="3.2"/><circle cx="80" cy="52" r="3.2"/><circle cx="108" cy="50" r="3.2"/><circle cx="126" cy="46" r="3.2"/></g>'+
   '</g></svg>';
 
-window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":"assets/apple_story-ab08fad7.webp","eb_banner":"assets/eb_banner-75b8347f.webp","eb_desktop":"assets/eb_desktop-ffaab384.webp","eb_phones":"assets/eb_phones-22b048b3.webp","headshot":"assets/headshot-e073c9c4.webp","hub_email2":"assets/hub_email2-571e2eab.webp","hub_email4":"assets/hub_email4-d939ee7c.webp","hub_packet":"assets/hub_packet-2c59872a.webp","hub_support":"assets/hub_support-a75baba2.webp","jm_email":"assets/jm_email-1cab3011.webp","jm_menu":"assets/jm_menu-054d3d33.webp","jm_photo":"assets/jm_photo-3ae1b18a.webp","resume_pdf":"assets/resume_pdf-dd13bd5c.pdf","resume_preview":"assets/resume_preview-b3284045.webp","tig_aleppo":"assets/tig_aleppo-ed307995.webp","tig_mba":"assets/tig_mba-2622ce0c.webp","tig_site":"assets/tig_site-82ca23e5.webp"};
+window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":"assets/apple_story-ab08fad7.webp","eb_banner":"assets/eb_banner-75b8347f.webp","eb_desktop":"assets/eb_desktop-ffaab384.webp","eb_phones":"assets/eb_phones-22b048b3.webp","headshot":"assets/headshot-e073c9c4.webp","hub_email2":"assets/hub_email2-571e2eab.webp","hub_email4":"assets/hub_email4-d939ee7c.webp","hub_packet":"assets/hub_packet-2c59872a.webp","hub_support":"assets/hub_support-a75baba2.webp","jm_email":"assets/jm_email-1cab3011.webp","jm_menu":"assets/jm_menu-054d3d33.webp","jm_photo":"assets/jm_photo-3ae1b18a.webp","resume_pdf":"assets/resume_pdf-dd13bd5c.pdf","resume_preview":"assets/resume_preview-b3284045.webp","three":"assets/three-f9d981f3.js","tig_aleppo":"assets/tig_aleppo-ed307995.webp","tig_mba":"assets/tig_mba-2622ce0c.webp","tig_site":"assets/tig_site-82ca23e5.webp"};
 /* tigOS core app.js, part 00: setup. The parts in this folder are concatenated in name order by build.py, so they share one scope. */
 (function(){
   'use strict';
@@ -1369,6 +1369,11 @@ window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":
     sc.onload = done; sc.onerror = function(){ arcadeState = 0; toast('The arcade did not load. Check the connection and try again.'); };
     document.head.appendChild(sc);
   }
+  /* a game can lean on a vendored library (Nightshift: Three.js). It ships as a hashed asset and is fetched the first time such a game starts. */
+  var LIBS = {};   /* asset key -> 0 idle, 1 loading, 2 ready */
+  function loadLib(key, cb, err){ var glob = { three:'THREE' }[key] || key; if(window[glob] || LIBS[key] === 2){ LIBS[key] = 2; cb(); return; }
+    var sc = document.createElement('script'); sc.src = (window.TIG_ASSETS && window.TIG_ASSETS[key]) || key+'.js'; sc.async = true; LIBS[key] = 1;
+    sc.onload = function(){ LIBS[key] = 2; cb(); }; sc.onerror = function(){ LIBS[key] = 0; if(err) err(); }; document.head.appendChild(sc); }
   var GSTORE = { get: function(){ try { return JSON.parse(localStorage.getItem('tigos.games') || '{}'); } catch(e){ return {}; } }, set: function(o){ try { localStorage.setItem('tigos.games', JSON.stringify(o)); } catch(e){} } };
   function gameById(q){ q = String(q || '').toLowerCase().trim(); if(!q) return null; if(/^\d+$/.test(q) && GAMES[+q-1]) return GAMES[+q-1]; return GAMES.filter(function(g){ return g.id === q || g.name.toLowerCase() === q; })[0] || null; }
   function isTouch(){ return isMobile() || (window.matchMedia && matchMedia('(pointer:coarse)').matches); }
@@ -1409,11 +1414,14 @@ window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":
         if(GAMES[+e.key-1]) play(GAMES[+e.key-1].id); };
       keyU = function(){}; visH = function(){}; document.addEventListener('keydown', keyH); document.addEventListener('keyup', keyU); document.addEventListener('visibilitychange', visH);
     }
-    function fit(){ if(!cv || !stage || !G) return; var sw = stage.clientWidth, sh = stage.clientHeight; if(!sw || !sh) return; var sc = Math.min(sw / G.W, sh / G.H); cv.style.width = Math.floor(G.W * sc)+'px'; cv.style.height = Math.floor(G.H * sc)+'px'; }
+    function fit(){ if(!cv || !stage || !G) return; var sw = stage.clientWidth, sh = stage.clientHeight; if(!sw || !sh) return;
+      if(G.gl){ cv.style.width = sw+'px'; cv.style.height = sh+'px'; if(cur && cur.resize) try { cur.resize(sw, sh); } catch(e){} return; }   /* a WebGL game fills the stage and sizes its own renderer */
+      var sc = Math.min(sw / G.W, sh / G.H); cv.style.width = Math.floor(G.W * sc)+'px'; cv.style.height = Math.floor(G.H * sc)+'px'; }
     function setOver(html){ var ov = $('.gm-over', w.body); if(!ov) return; if(html === null){ ov.hidden = true; ov.innerHTML = ''; } else { ov.innerHTML = html; ov.hidden = false; } }
     function overlay(){
       if(state.over){ var nb = state.score > 0 && state.score >= state.best; setOver('<b>'+esc(state.overMsg || 'Game over')+'</b><span>score '+state.score+(nb ? '  \u00b7  new best' : '  \u00b7  best '+state.best)+'</span><div><button type="button" data-again>Play again <kbd>R</kbd></button><button type="button" data-back>All games</button></div>'); }
       else if(state.paused) setOver('<b>Paused</b><span>press <kbd>P</kbd> or tap to keep going</span>');
+      else if(state.ready && G.intro) setOver(G.intro(isTouch()));   /* a game may bring its own title card; it must still say "press any key" or "tap" */
       else if(state.ready) setOver('<b>'+esc(G.name)+'</b><span>'+esc(isTouch() && G.tkeys ? G.tkeys : G.keys)+'</span>'+(isTouch() && G.W > G.H * 1.2 && window.innerHeight > window.innerWidth ? '<small>wider than it is tall: turn your phone sideways for a bigger picture</small>' : '')+'<em>'+(isTouch() ? 'tap' : 'press any key')+' to start</em>');
       else setOver(null);
       var ov = $('.gm-over', w.body); if(ov && !ov.hidden){ var ag = $('[data-again]', ov); if(ag) ag.addEventListener('click', function(e){ e.stopPropagation(); restart(); }); var bk = $('[data-back]', ov); if(bk) bk.addEventListener('click', function(e){ e.stopPropagation(); home(); }); }
@@ -1423,7 +1431,7 @@ window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":
     function restart(){ if(!cur) return; state.paused = false; state.over = false; state.ready = true; state.score = 0; state.best = bestOf(G.id); hud.score.textContent = '0'; hud.best.textContent = String(state.best); cur.reset(); overlay(); stage.focus({ preventScroll:true }); }
     function begin(){ if(!state.ready) return; state.ready = false; overlay(); }
     function loop(ts){ raf = requestAnimationFrame(loop); if(!cur) return; var dt = last ? Math.min(.05, (ts - last) / 1000) : 0; last = ts; try { if(!state.paused && !state.over && !state.ready) cur.update(dt); cur.draw(ctx); } catch(e){ stop(); setOver('<b>That game crashed</b><span>'+esc(String(e && e.message || e))+'</span><div><button type="button" data-back>All games</button></div>'); var bk = $('[data-back]', w.body); if(bk) bk.addEventListener('click', home); } }
-    function api(){ return { W:G.W, H:G.H, best:state.best, touch:isTouch(),
+    function api(){ return { W:G.W, H:G.H, best:state.best, touch:isTouch(), canvas:cv, stage:stage,
       score: function(n){ state.score = +n || 0; hud.score.textContent = String(state.score); if(state.score > state.best){ state.best = state.score; hud.best.textContent = String(state.best); } },
       over: function(msg){ if(state.over) return; state.over = true; state.overMsg = msg || 'Game over'; saveBest(); overlay(); },
       status: function(t){ hud.status.textContent = t || ''; } }; }
@@ -1437,19 +1445,20 @@ window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":
     function play(id){
       var g = gameById(id); if(!g){ home(); return; }
       stop(); if(w.el.classList.contains('fs')) root.classList.add('gaming');
+      if(g.lib && LIBS[g.lib] !== 2 && !window[{ three:'THREE' }[g.lib] || g.lib]){ w.body.innerHTML = '<div class="pad gm-loading"><div class="eyebrow">Arcade</div><p>Loading '+esc(g.name)+'\u2026</p></div>'; loadLib(g.lib, function(){ if(w.el.isConnected && $('.gm-loading', w.body)) play(id); }, function(){ if(w.el.isConnected){ toast(g.name+' did not load. Check the connection and try again.'); home(); } }); return; }
       G = g; state = { paused:false, over:false, ready:true, score:0, best:bestOf(g.id), overMsg:'' };
       var touch = isTouch(), pad = touch && PADS[g.pad] ? PADS[g.pad] : null;
       w.body.innerHTML = '<div class="gm'+(touch ? ' touch' : '')+'"><div class="gm-hud"><button type="button" class="gm-backb" data-back>'+ic('back')+'<span>Games</span></button><b class="gm-name" style="--gc:'+g.color+'">'+esc(g.name)+'</b><span class="gm-sc">score <b data-score>0</b></span><span class="gm-sc best">best <b data-best>'+state.best+'</b></span><span class="gm-status" data-status></span><span class="gm-sp"></span><button type="button" data-pause>Pause</button><button type="button" data-restart>Restart</button><button type="button" data-fs title="Full screen (Esc leaves)">'+ic('expand')+'</button></div>'+
         '<div class="gm-stage" tabindex="0" aria-label="'+esc(g.name)+' game"><canvas class="gm-cv" width="'+g.W+'" height="'+g.H+'"></canvas><div class="gm-over" hidden></div></div>'+
         (pad ? padHtml(pad) : '')+'</div>';
       stage = $('.gm-stage', w.body); cv = $('.gm-cv', w.body); hud = { score:$('[data-score]', w.body), best:$('[data-best]', w.body), status:$('[data-status]', w.body), pause:$('[data-pause]', w.body), fs:$('[data-fs]', w.body) };
-      var dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = g.W * dpr; cv.height = g.H * dpr; ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if(g.gl){ ctx = null; cv.classList.add('fill'); } else { var dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = g.W * dpr; cv.height = g.H * dpr; ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
       cur = g.make(api()); w.game = cur; stage.tigGame = cur; cur.reset(); overlay();
       $('[data-back]', w.body).addEventListener('click', home); hud.pause.addEventListener('click', function(){ pause(); stage.focus({ preventScroll:true }); }); $('[data-restart]', w.body).addEventListener('click', restart); hud.fs.addEventListener('click', function(){ gameFs(w); stage.focus({ preventScroll:true }); });
       w.onFs = function(on){ hud.fs.innerHTML = ic(on ? 'compress' : 'expand'); hud.fs.title = on ? 'Leave full screen (Esc)' : 'Full screen (Esc leaves)'; setTimeout(fit, 60); setTimeout(fit, 520); };
       var pt = function(e){ var r = cv.getBoundingClientRect(); return { x:(e.clientX - r.left) / r.width * g.W, y:(e.clientY - r.top) / r.height * g.H }; }, sw = null;
       stage.addEventListener('contextmenu', function(e){ e.preventDefault(); });
-      stage.addEventListener('pointerdown', function(e){ if(e.target.closest('.gm-over button')) return; stage.focus({ preventScroll:true }); if(state.over) return; if(state.paused){ pause(false); return; } if(state.ready){ begin(); if(cur && cur.wake) try { cur.wake(); } catch(x){} return; }   /* the click that dismisses "press any key" only starts the game: it never reaches the frog */ var p = pt(e); sw = { x:e.clientX, y:e.clientY, t:Date.now() }; if(cur) cur.pointer('down', p.x, p.y, e); });
+      stage.addEventListener('pointerdown', function(e){ if(e.target.closest('.gm-over button, .gm-over input, .gm-over select, .gm-over label, .gm-over output')) return;   /* a title card may carry settings controls */ stage.focus({ preventScroll:true }); if(state.over) return; if(state.paused){ pause(false); return; } if(state.ready){ begin(); if(cur && cur.wake) try { cur.wake(); } catch(x){} return; }   /* the click that dismisses "press any key" only starts the game: it never reaches the frog */ var p = pt(e); sw = { x:e.clientX, y:e.clientY, t:Date.now() }; if(cur) cur.pointer('down', p.x, p.y, e); });
       stage.addEventListener('pointermove', function(e){ if(!cur || state.over) return; var p = pt(e); cur.pointer('move', p.x, p.y, e); });
       stage.addEventListener('pointerup', function(e){ if(!cur) return; var p = pt(e); cur.pointer('up', p.x, p.y, e);
         if(sw && (g.pad === 'dirs' || g.pad === 'stack')){ var dx = e.clientX - sw.x, dy = e.clientY - sw.y, k = null; if(Math.hypot(dx, dy) > 24) k = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'ArrowRight' : 'ArrowLeft') : (dy > 0 ? 'ArrowDown' : 'ArrowUp'); else if(g.pad === 'stack' && e.pointerType === 'touch') k = 'ArrowUp'; if(k){ cur.key(k, true); cur.key(k, false); } } sw = null; });
@@ -1457,7 +1466,11 @@ window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":
       var padEl = $('.gm-pad', w.body); if(padEl){ padEl.addEventListener('touchstart', function(e){ e.preventDefault(); }, { passive:false }); padEl.addEventListener('touchmove', function(e){ e.preventDefault(); }, { passive:false }); }
       window.addEventListener('blur', releaseAll); document.addEventListener('pointerup', docUp, true); document.addEventListener('pointercancel', docUp, true);
       keyH = function(e){
-        if(!cur || w.min || !w.el.classList.contains('focus') || e.target.closest('input,textarea,select') || e.metaKey || e.ctrlKey || e.altKey) return;
+        if(!cur || w.min || !w.el.classList.contains('focus') || e.metaKey || e.ctrlKey || e.altKey) return;
+        if(e.target.closest('input,textarea,select')){   /* a title-card setting has focus: arrows, Tab, Space and Enter still drive the control, any other key hands off to the game */
+          if(!(state.ready && e.target.closest('.gm-over') && !/^(Arrow|Tab|Home|End|Page|Enter| $)/.test(e.key))) return;
+          e.target.blur(); stage.focus({ preventScroll:true });
+        }
         if(e.key === 'p' || e.key === 'P'){ e.preventDefault(); pause(); return; }
         if((e.key === 'r' || e.key === 'R') && !(G.ownKeys && !state.over)){ e.preventDefault(); restart(); return; }   /* the shooter owns R for reload; its restart is the HUD button or the game-over card */
         if(state.over){ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); restart(); } return; }

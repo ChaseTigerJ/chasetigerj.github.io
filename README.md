@@ -12,8 +12,8 @@ Files
 - `index.html`             the page shell (16 KB): head, markup, the two script/style links
 - `tigos.css`              the stylesheet
 - `tigos.js`               data, the Journey map, pets, the asset map and the app (live wallpaper, screensavers, easter eggs included)
-- `arcade.js`              the 15 games; fetched after boot, so the desktop never waits for it
-- `assets/`                images and the resume, content-hashed file names
+- `arcade.js`              the 15 games; fetched after boot, so the desktop never waits for it. Nightshift (Three.js) loads `assets/three-<hash>.js` only when it is launched
+- `assets/`                images, the resume and the Three.js bundle, content-hashed file names
 - `manifest.webmanifest`   installable app metadata (standalone display, icons)
 - `apple-touch-icon.png`, `favicon-32.png`, `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `icon-1024.png`
 - `404.html`               sends unknown paths back to the desktop
