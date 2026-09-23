@@ -282,6 +282,8 @@ window.TIG_PETS = {
     '<text x="60" y="95.5" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="4.6" font-weight="700" letter-spacing=".6" fill="#8b93b8">AKI</text>'+
     '</svg>' }
 };
+/* Tig the tiger: the cat's drawing in tiger colours (orange coat, black stripes, amber eyes, cream muzzle) */
+window.TIG_PETS.tiger = { name:'Tig', label:'tiger', say:['rawr', 'grr', 'hi, chase', 'tigOS!'], svg: window.TIG_PETS.cat.svg.replace(/#f2a24d/g, '#ff8a00').replace(/#c96f22/g, '#1c1a1d').replace(/#e0862f/g, '#ff8a00').replace(/#ffb7c8/g, '#ffd9b3').replace(/#ffe8cf/g, '#fff3e0').replace(/#4b8f6a/g, '#f5b301').replace(/#ff9ab3/g, '#ffffff') };
 window.TIG_UFO = '<svg viewBox="0 0 160 100">'+
   '<g class="ufo-beam"><path d="M58 58 L12 100 H148 L102 58 Z" fill="url(#ufoBeam)"/></g>'+
   '<defs><linearGradient id="ufoBeam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fffb0" stop-opacity=".85"/><stop offset="1" stop-color="#8fffb0" stop-opacity="0"/></linearGradient><radialGradient id="ufoDome" cx=".5" cy=".4" r=".6"><stop offset="0" stop-color="#d9f7ff" stop-opacity=".95"/><stop offset="1" stop-color="#6fc3ff" stop-opacity=".55"/></radialGradient></defs>'+
@@ -937,7 +939,7 @@ window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":
      radius of wherever the user last dropped the pet. */
   var petsEl = $('#pets');
   var PETS = window.TIG_PETS || {};
-  var PET_ALIAS = { ladybug:'ladybug', bug:'ladybug', hailey:'ladybug', penguin:'penguin', pip:'penguin', cow:'cow', moo:'cow', dog:'dog', shepherd:'dog', 'german shepherd':'dog', germanshepherd:'dog', gsd:'dog', khloe:'dog', 'khlo\u00e9':'dog', puppy:'dog', cat:'cat', kitty:'cat', goob:'cat', aki:'aki', robot:'aki', bot:'aki' };
+  var PET_ALIAS = { tiger:'tiger', tig:'tiger', rawr:'tiger', ladybug:'ladybug', bug:'ladybug', hailey:'ladybug', penguin:'penguin', pip:'penguin', cow:'cow', moo:'cow', dog:'dog', shepherd:'dog', 'german shepherd':'dog', germanshepherd:'dog', gsd:'dog', khloe:'dog', 'khlo\u00e9':'dog', puppy:'dog', cat:'cat', kitty:'cat', goob:'cat', aki:'aki', robot:'aki', bot:'aki' };
   var PET = { el:null, t:0, face:1, mood:'', home:0, busy:false }, petBin = $('#petBin');
   var PET_HOME = 130;   /* max px a pet wanders from where it was put down */
   function petEl(){ return $('.pet', petsEl); }
@@ -1291,6 +1293,7 @@ window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":
       ,
       version: function(){ CMD.tigos(); }, ver: function(){ CMD.tigos(); }, uname: function(){ print('tigOS chasetiger.com 2.0 vanilla-js arm64'); }
     };
+    Object.keys(EXTRA_CMDS).forEach(function(k){ CMD[k] = function(arg){ EXTRA_CMDS[k](arg, { print:print, art:art, o:o, cmd:CMD }); }; });   /* screensaver, party, do, sl, konami (27-eggs.js) */
     /* tab completion: one match fills it in, several extend to the common prefix and a second tab lists them, like bash */
     var ARGS = { open:function(){ return VIS(); }, cat:function(){ return VIS(); }, cd:function(){ return VIS(); }, man:function(){ return Object.keys(CMD).filter(function(k){ return /^[a-z]/.test(k); }); }, su:function(){ return Object.keys(USERS); }, pet:function(){ return Object.keys(PETS).concat(['off']); }, pets:function(){ return Object.keys(PETS).concat(['off']); }, game:function(){ return GAMES.map(function(g){ return g.id; }); }, games:function(){ return GAMES.map(function(g){ return g.id; }); }, play:function(){ return GAMES.map(function(g){ return g.id; }); } };
     var lastTab = '';
@@ -1499,7 +1502,7 @@ window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":
 
 /* tigOS core app.js, part 16: settings. The parts in this folder are concatenated in name order by build.py, so they share one scope. */
   /* ---------------- settings (persisted) ---------------- */
-  var PREF = { theme:'dark', accent:'orange', text:'md', dock:'md', dockpos:'bottom', dockhide:'off', motion:'on', cursor:'block', pet:'', petsize:'md' };
+  var PREF = { theme:'dark', accent:'orange', text:'md', dock:'md', dockpos:'bottom', dockhide:'off', motion:'on', cursor:'block', pet:'', petsize:'md', wall:'live', saver:'drift', idle:'10' };
   var STORE = {
     get: function(){ var raw = null; try { raw = localStorage.getItem('tigos.prefs'); } catch(e){} if(!raw){ try { var m = document.cookie.match(/(?:^|; )tigos\.prefs=([^;]*)/); if(m) raw = decodeURIComponent(m[1]); } catch(e){} } return raw; },
     set: function(raw){ try { localStorage.setItem('tigos.prefs', raw); } catch(e){} try { document.cookie = 'tigos.prefs='+encodeURIComponent(raw)+'; max-age=31536000; path=/; SameSite=None; Secure'; document.cookie = 'tigos.prefs='+encodeURIComponent(raw)+'; max-age=31536000; path=/; SameSite=Lax'; } catch(e){} }
@@ -1514,6 +1517,7 @@ window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":
     root.classList.remove('dock-left', 'dock-right'); if(PREF.dockpos !== 'bottom') root.classList.add('dock-'+PREF.dockpos);
     root.classList.toggle('dock-hide', PREF.dockhide === 'on');
     root.classList.toggle('rm', PREF.motion === 'off');
+    if(typeof WALL !== 'undefined') wallApply();
     root.classList.remove('cur-block', 'cur-line', 'cur-underline'); root.classList.add('cur-'+(PREF.cursor || 'block'));
     root.classList.remove('pet-sm', 'pet-lg'); if(PREF.petsize && PREF.petsize !== 'md') root.classList.add('pet-'+PREF.petsize);
     if(typeof petApply === 'function') petApply();
@@ -1548,11 +1552,14 @@ window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":
       row('Auto-hide dock', 'Slides away until you reach for it.', seg('dockhide', [['off','Off'],['on','On']])))+
       (isMobile() ? '' : row('Terminal cursor', 'Block is the default.', seg('cursor', [['block','Block'],['line','Line'],['underline','Underline']])))+
       (PREF.pet && PETS[PREF.pet] ? row('Pet', esc(PETS[PREF.pet].name)+' the '+esc(PETS[PREF.pet].label)+'. Drag onto the X to say goodbye, or turn off here.', '<div class="pet-ctl">'+seg('petsize', [['sm','Small'],['md','Medium'],['lg','Large']])+'<button type="button" class="pet-off" data-pet-off>Off</button></div>') : '')+
+      row('Wallpaper', 'Live adds depth that follows the mouse.', seg('wall', [['live','Live'],['still','Still']]))+
+      row('Screensaver', esc(PREF.saver === 'random' ? 'A different one each time.' : (SAVERS[PREF.saver] || SAVERS.drift).sub+'.'), seg('saver', Object.keys(SAVERS).map(function(k){ return [k, SAVERS[k].name]; }).concat([['random','Random']])))+
+      row('Start after', 'Idle time before the screensaver.', seg('idle', [['off','Off'],['2','2 min'],['5','5 min'],['10','10 min'],['20','20 min']]))+
       row('Motion', 'Turn off animations.', seg('motion', [['on','On'],['off','Reduced']]))+
       '<div class="set-foot"><span>tigOS 2.0 \u00b7 '+VIS().length+' apps</span><button type="button" data-reset>Reset to defaults</button></div></div>';
     $$('.seg button', w.body).forEach(function(b){ b.addEventListener('click', function(){ setPref(b.parentNode.getAttribute('data-pref'), b.getAttribute('data-v')); }); });
     var po = $('[data-pet-off]', w.body); if(po) po.addEventListener('click', function(){ var el = petEl(); if(el) petGoodbye(el); else petSet(''); });
-    $('[data-reset]', w.body).addEventListener('click', function(){ PREF = { theme:'dark', accent:'orange', text:'md', dock:'md', dockpos:'bottom', dockhide:'off', motion:'on', cursor:'block', pet:'', petsize:'md' }; applyPrefs(); RENDER.settings(w); toast('Settings reset', 'Back to the defaults.'); });
+    $('[data-reset]', w.body).addEventListener('click', function(){ PREF = { theme:'dark', accent:'orange', text:'md', dock:'md', dockpos:'bottom', dockhide:'off', motion:'on', cursor:'block', pet:'', petsize:'md', wall:'live', saver:'drift', idle:'10' }; applyPrefs(); RENDER.settings(w); toast('Settings reset', 'Back to the defaults.'); });
   };
 
 /* tigOS core app.js, part 17: lightbox. The parts in this folder are concatenated in name order by build.py, so they share one scope. */
@@ -1652,7 +1659,7 @@ window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":
   function powerOn(){ root.classList.add('booting'); offEl.classList.add('leaving'); setTimeout(function(){ offEl.hidden = true; offEl.classList.remove('leaving'); }, 480); bootSeq(true); }
   /* screensaver: "Drift" — a field of luminous strands that sway together like kelp, inspired by macOS Drift. Full screen, clock bottom-left. */
   var SAVER = { on:false, raf:0 };
-  function saverStart(){
+  function driftStart(){   /* started through saverStart(kind) in 26-screensavers.js */
     var cv = $('#saver'); if(!cv || SAVER.on) return; SAVER.on = true; cv.setAttribute('data-run', '1');
     var ctx = cv.getContext('2d'), W, H, strands = [], hue0 = 270 + Math.random()*60, mob = isMobile();
     var size = function(){
@@ -1687,7 +1694,7 @@ window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":
     };
     SAVER.raf = requestAnimationFrame(frame);
   }
-  function saverStop(){ SAVER.on = false; cancelAnimationFrame(SAVER.raf); var cv = $('#saver'); if(cv) cv.removeAttribute('data-run'); }
+  function saverStop(){ SAVER.on = false; cancelAnimationFrame(SAVER.raf); var cv = $('#saver'); if(cv){ cv.removeAttribute('data-run'); cv.removeAttribute('data-kind'); } }
   function wake(){ if(!sleepEl.hidden){ sleepEl.hidden = true; saverStop(); var g = greeting(); toast(g.t, g.s, g.i); } }
   $$('[data-power]', pw).forEach(function(b){ b.addEventListener('click', function(){
     var act = b.getAttribute('data-power'); pw.hidden = true;
@@ -1779,7 +1786,216 @@ window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":
     if(window.visualViewport){ var vv = window.visualViewport, onvv = function(){ var gap = Math.round(window.innerHeight - vv.height - vv.offsetTop); if(gap > 0 && gap < 200) apply(Math.max(gap, parseInt(root.style.getPropertyValue('--lift')) || 0)); }; vv.addEventListener('resize', onvv); onvv(); }
   })();
 
-/* tigOS core app.js, part 25: boot. The parts in this folder are concatenated in name order by build.py, so they share one scope. */
+/* tigOS core app.js, part 25: live wallpaper. The parts in this folder are concatenated in name order by build.py, so they share one scope. */
+  /* ---------------- live wallpaper: a WebGL aurora with depth. Three layers of noise drift at different speeds and slide with the cursor at
+     different rates (far layer barely, near layer most), so the wallpaper reads as deep rather than flat. It sits under the CSS orbs, renders
+     at half resolution at 30 fps, and pauses when a game is full screen, the screen is asleep, the tab is hidden, or motion is reduced.
+     The CSS gradient stays underneath as the fallback (Settings > Wallpaper > Still, or no WebGL). ---------------- */
+  var WALL = { gl:null, cv:null, on:false, raf:0, last:0, t0:0, px:0, py:0, tx:0, ty:0 };
+  var WALL_FRAG = [
+    'precision mediump float; uniform vec2 R; uniform float T; uniform vec2 P;',
+    'float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+    'float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3. - 2.*f); return mix(mix(hash(i), hash(i + vec2(1., 0.)), f.x), mix(hash(i + vec2(0., 1.)), hash(i + vec2(1., 1.)), f.x), f.y); }',
+    'float fbm(vec2 p){ float v = 0., a = .5; for(int i = 0; i < 5; i++){ v += a*noise(p); p = p*2.03 + vec2(1.7, 9.2); a *= .5; } return v; }',
+    'void main(){',
+    '  vec2 uv = gl_FragCoord.xy / R; vec2 q = vec2(uv.x * R.x / R.y, uv.y);',
+    '  vec3 c = mix(vec3(.145, .086, .224), vec3(.082, .106, .212), uv.x*.6 + (1. - uv.y)*.4);',           /* #251639 -> #151b36, the CSS base */
+    '  float far = fbm(q*1.5 + P*.03 + vec2(T*.018, T*.012));',
+    '  float mid = fbm(q*2.4 - P*.08 + vec2(-T*.026, T*.02));',
+    '  float near = fbm(q*3.8 + P*.17 + vec2(T*.03, -T*.024));',
+    '  c += vec3(1., .59, .27) * .52 * smoothstep(.30, .78, far) * (1. - uv.x*1.15) * (uv.y*.7 + .3);',                  /* orange, top left */
+    '  c += vec3(.53, .41, 1.) * .58 * smoothstep(.30, .78, mid) * (uv.x*.75 + .25) * (1. - uv.y*1.1);',                  /* violet, bottom right */
+    '  c += vec3(1., .35, .59) * .30 * smoothstep(.36, .82, near) * max(0., 1. - abs(uv.x - .55)*1.7) * max(0., 1. - abs(uv.y - .5)*1.7);', /* pink, centre */
+    '  c += vec3(.35, .75, 1.) * .26 * smoothstep(.38, .84, mid) * uv.x * uv.y;',                            /* blue, top right */
+    '  c += (hash(gl_FragCoord.xy + T) - .5) * .012;',                                                     /* grain against banding */
+    '  gl_FragColor = vec4(c, 1.);',
+    '}'].join('\n');
+  function wallInit(){
+    var cv = $('#wallgl'); if(!cv || WALL.gl !== null) return;
+    var gl = null; try { gl = cv.getContext('webgl', { antialias:false, alpha:false, depth:false, powerPreference:'low-power' }); } catch(e){}
+    if(!gl){ WALL.gl = false; return; }
+    /* a software renderer (SwiftShader, llvmpipe: no GPU, or a headless browser) would spend the CPU the desktop needs; fall back to the CSS gradient. ?gl=1 forces it on for testing */
+    var dbg = gl.getExtension('WEBGL_debug_renderer_info'), renderer = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
+    if(/swiftshader|llvmpipe|softpipe|software/i.test(renderer) && !/[?&]gl=1/.test(location.search)){ WALL.gl = false; WALL.soft = renderer; cv.setAttribute('data-soft', '1'); return; }
+    var mk = function(type, src){ var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+    try {
+      var prog = gl.createProgram();
+      gl.attachShader(prog, mk(gl.VERTEX_SHADER, 'attribute vec2 a; void main(){ gl_Position = vec4(a, 0., 1.); }'));
+      gl.attachShader(prog, mk(gl.FRAGMENT_SHADER, WALL_FRAG)); gl.linkProgram(prog);
+      if(!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+      gl.useProgram(prog);
+      var buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      var a = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
+      WALL.u = { R:gl.getUniformLocation(prog, 'R'), T:gl.getUniformLocation(prog, 'T'), P:gl.getUniformLocation(prog, 'P') };
+    } catch(e){ WALL.gl = false; return; }
+    WALL.gl = gl; WALL.cv = cv; WALL.t0 = performance.now();
+    document.addEventListener('pointermove', function(e){ if(e.pointerType === 'touch') return; WALL.tx = (e.clientX/innerWidth - .5)*2; WALL.ty = (e.clientY/innerHeight - .5)*-2; }, { passive:true });
+  }
+  function wallWants(){ return PREF.wall !== 'still' && PREF.motion !== 'off' && !document.hidden && (!sleepEl || sleepEl.hidden) && !root.classList.contains('gaming'); }
+  function wallApply(){
+    if(WALL.gl === null) wallInit(); if(!WALL.gl) return;
+    WALL.cv.classList.toggle('on', PREF.wall !== 'still' && PREF.motion !== 'off');
+    var want = wallWants();
+    if(want && !WALL.on){ WALL.on = true; WALL.raf = requestAnimationFrame(wallFrame); }
+    if(!want && WALL.on){ WALL.on = false; cancelAnimationFrame(WALL.raf); }
+  }
+  function wallFrame(ts){
+    if(!WALL.on) return; WALL.raf = requestAnimationFrame(wallFrame);
+    if(ts - WALL.last < 33) return; WALL.last = ts;
+    var gl = WALL.gl, cv = WALL.cv, w = Math.max(2, (cv.clientWidth/2) | 0), h = Math.max(2, (cv.clientHeight/2) | 0);
+    if(cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; gl.viewport(0, 0, w, h); }
+    WALL.px += (WALL.tx - WALL.px)*.04; WALL.py += (WALL.ty - WALL.py)*.04;
+    gl.uniform2f(WALL.u.R, w, h); gl.uniform1f(WALL.u.T, (ts - WALL.t0)*.001); gl.uniform2f(WALL.u.P, WALL.px, WALL.py);
+    gl.drawArrays(gl.TRIANGLES, 0, 3); WALL.frames = (WALL.frames || 0) + 1; if((WALL.frames & 7) === 1) cv.setAttribute('data-frames', WALL.frames);
+  }
+  document.addEventListener('visibilitychange', wallApply);
+  new MutationObserver(wallApply).observe(root, { attributes:true, attributeFilter:['class'] });
+  new MutationObserver(wallApply).observe(sleepEl, { attributes:true, attributeFilter:['hidden'] });
+  wallApply();
+/* tigOS core app.js, part 26: screensavers. The parts in this folder are concatenated in name order by build.py, so they share one scope. */
+  /* ---------------- screensavers. Drift (20-power.js, driftStart) was the only one; these join it. saverStart(kind) is the one entry point:
+     the power menu and `sleep` use the chosen default (Settings > Screensaver), `screensaver <name>` starts a specific one, and an idle timer
+     (Settings > Start after) starts it on its own. Any key, click or real mouse movement wakes. ---------------- */
+  var PAL = ['#ff8a00', '#ffd166', '#63e6be', '#8cc7ff', '#ff7ab6', '#a78bfa'];
+  var SAVERS = {
+    drift: { name:'Drift', sub:'luminous strands that sway like kelp' },
+    warp: { name:'Warp', sub:'a starfield at speed',
+      init:function(W, H){ var s = []; for(var i = 0; i < (isMobile() ? 220 : 520); i++) s.push({ x:(Math.random()-.5)*2, y:(Math.random()-.5)*2, z:Math.random()*.95 + .05, c:PAL[i % PAL.length] }); return { stars:s }; },
+      draw:function(c, S, t, dt, W, H){
+        c.fillStyle = 'rgba(4,4,10,.55)'; c.fillRect(0, 0, W, H);
+        var sp = .32 + .28*(.5 + .5*Math.sin(t*.35)), cx = W/2, cy = H/2, sc = Math.max(W, H)*.5;
+        c.lineCap = 'round';
+        for(var i = 0; i < S.stars.length; i++){
+          var s = S.stars[i], z0 = s.z; s.z -= dt*sp; if(s.z <= .02){ s.x = (Math.random()-.5)*2; s.y = (Math.random()-.5)*2; s.z = 1; z0 = 1; }
+          var x0 = cx + s.x/z0*sc, y0 = cy + s.y/z0*sc, x1 = cx + s.x/s.z*sc, y1 = cy + s.y/s.z*sc;
+          if(x1 < -20 || x1 > W+20 || y1 < -20 || y1 > H+20) continue;
+          c.strokeStyle = s.c; c.globalAlpha = Math.min(1, (1 - s.z)*1.3); c.lineWidth = (1 - s.z)*3 + .5;
+          c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+        }
+        c.globalAlpha = 1;
+      } },
+    bounce: { name:'Bounce', sub:'the logo, bouncing. It changes colour on every wall and celebrates a corner',
+      init:function(W, H){ var m = isMobile(), w = m ? 132 : 220, h = m ? 78 : 130; return { x:Math.random()*(W-w), y:Math.random()*(H-h), w:w, h:h, vx:(m ? 110 : 170)*(Math.random() < .5 ? -1 : 1), vy:(m ? 90 : 135)*(Math.random() < .5 ? -1 : 1), ci:0, corner:0, corners:0, bits:[] }; },
+      draw:function(c, S, t, dt, W, H){
+        c.fillStyle = '#000'; c.fillRect(0, 0, W, H);
+        S.x += S.vx*dt; S.y += S.vy*dt; var hx = false, hy = false;
+        if(S.x <= 0){ S.x = 0; S.vx = Math.abs(S.vx); hx = true; } if(S.x + S.w >= W){ S.x = W - S.w; S.vx = -Math.abs(S.vx); hx = true; }
+        if(S.y <= 0){ S.y = 0; S.vy = Math.abs(S.vy); hy = true; } if(S.y + S.h >= H){ S.y = H - S.h; S.vy = -Math.abs(S.vy); hy = true; }
+        if(hx || hy){ S.ci = (S.ci + 1) % PAL.length; }
+        if(hx && hy){ S.corner = 1.8; S.corners++; for(var i = 0; i < 90; i++) S.bits.push({ x:S.x + S.w/2, y:S.y + S.h/2, vx:(Math.random()-.5)*640, vy:(Math.random()-.9)*640, c:PAL[i % PAL.length], l:1 + Math.random() }); }
+        var col = PAL[S.ci], g = c.createLinearGradient(S.x, S.y, S.x + S.w, S.y + S.h); g.addColorStop(0, col); g.addColorStop(1, '#ffffff');
+        c.save(); c.shadowColor = col; c.shadowBlur = 40; c.fillStyle = g; c.beginPath(); var r = S.h*.22; c.moveTo(S.x + r, S.y); c.arcTo(S.x + S.w, S.y, S.x + S.w, S.y + S.h, r); c.arcTo(S.x + S.w, S.y + S.h, S.x, S.y + S.h, r); c.arcTo(S.x, S.y + S.h, S.x, S.y, r); c.arcTo(S.x, S.y, S.x + S.w, S.y, r); c.closePath(); c.fill(); c.restore();
+        c.fillStyle = '#0b0b10'; c.font = '800 '+Math.round(S.h*.42)+'px -apple-system, BlinkMacSystemFont, Inter, Helvetica, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('tigOS', S.x + S.w/2, S.y + S.h/2 + 2);
+        for(var k = S.bits.length - 1; k >= 0; k--){ var b = S.bits[k]; b.l -= dt; if(b.l <= 0){ S.bits.splice(k, 1); continue; } b.vy += 900*dt; b.x += b.vx*dt; b.y += b.vy*dt; c.fillStyle = b.c; c.globalAlpha = Math.min(1, b.l); c.fillRect(b.x, b.y, 6, 6); }
+        c.globalAlpha = 1;
+        if(S.corner > 0){ S.corner -= dt; c.fillStyle = 'rgba(255,255,255,'+Math.min(1, S.corner)+')'; c.font = '800 '+Math.round(H*.09)+'px -apple-system, BlinkMacSystemFont, Inter, Helvetica, sans-serif'; c.fillText('CORNER!', W/2, H*.5); }
+        if(S.corners){ c.fillStyle = 'rgba(255,255,255,.35)'; c.font = '600 13px ui-monospace, Menlo, monospace'; c.textAlign = 'right'; c.fillText('corners: '+S.corners, W - 18, 22); }
+      } },
+    matrix: { name:'Matrix', sub:'glyph rain. Read the columns',
+      init:function(W, H){ var cw = isMobile() ? 14 : 18, n = Math.ceil(W/cw), cols = [], words = ['HIRE CHASE', 'TIGOS', 'MARKETING', 'CLEAR', 'CHASETIGER.COM', 'GTM', 'GROWTH'];
+        for(var i = 0; i < n; i++) cols.push({ y:Math.random()*-H, sp:(isMobile() ? 120 : 160) + Math.random()*260, k:0, word:(i % 7 === 3) ? words[Math.floor(Math.random()*words.length)] : null, wi:0, acc:0 });
+        return { cw:cw, cols:cols, glyphs:'アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789TIGOS<>/*+=' }; },
+      draw:function(c, S, t, dt, W, H){
+        c.fillStyle = 'rgba(0,0,0,.16)'; c.fillRect(0, 0, W, H);
+        c.font = '600 '+Math.round(S.cw*.9)+'px ui-monospace, Menlo, Consolas, monospace'; c.textAlign = 'center'; c.textBaseline = 'top';
+        for(var i = 0; i < S.cols.length; i++){
+          var col = S.cols[i]; col.acc += col.sp*dt; if(col.acc < S.cw) continue; col.acc = 0; col.y += S.cw;
+          if(col.y > H + S.cw*4){ col.y = -S.cw*Math.floor(Math.random()*30); col.wi = 0; continue; }
+          var ch = col.word ? col.word[col.wi++ % col.word.length] : S.glyphs[Math.floor(Math.random()*S.glyphs.length)];
+          var x = i*S.cw + S.cw/2;
+          c.fillStyle = col.word ? '#ffd166' : '#b8ffcf'; c.fillText(ch, x, col.y);
+          c.fillStyle = col.word ? 'rgba(255,138,0,.85)' : 'rgba(40,200,64,.85)'; c.fillText(ch, x, col.y - S.cw);
+        }
+      } }
+  };
+  function saverStart(kind){
+    var cv = $('#saver'); if(!cv || SAVER.on) return;
+    kind = kind || PREF.saver || 'drift'; if(kind === 'random' || !SAVERS[kind]){ var ks = Object.keys(SAVERS); kind = ks[Math.floor(Math.random()*ks.length)]; }
+    cv.setAttribute('data-kind', kind);
+    if(kind === 'drift'){ driftStart(); return; }
+    SAVER.on = true; cv.setAttribute('data-run', '1');
+    var ctx = cv.getContext('2d'), W, H, S, sv = SAVERS[kind];
+    var size = function(){ W = cv.width = root.clientWidth; H = cv.height = root.clientHeight; S = sv.init(W, H); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); };
+    size(); window.addEventListener('resize', size);
+    var last = 0, t0 = performance.now();
+    var frame = function(ts){
+      if(!SAVER.on){ window.removeEventListener('resize', size); return; }
+      SAVER.raf = requestAnimationFrame(frame);
+      if(ts - last < (isMobile() ? 40 : 16)) return; var dt = Math.min(.05, (ts - (last || ts))*.001); last = ts;
+      sv.draw(ctx, S, (ts - t0)*.001, dt, W, H);
+    };
+    SAVER.raf = requestAnimationFrame(frame);
+  }
+  /* idle: no key, click, wheel or mouse movement for Settings > Start after minutes. Never while a game is open, on the login or off screens, or in a hidden tab. */
+  var IDLE = { last:performance.now(), shown:0 };
+  ['pointermove', 'pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function(ev){ document.addEventListener(ev, function(){ IDLE.last = performance.now(); }, { passive:true, capture:true }); });
+  setInterval(function(){
+    var m = parseFloat(PREF.idle); if(!(m > 0) || performance.now() - IDLE.last < m*60000) return;
+    if(!sleepEl.hidden || !offEl.hidden || !loginEl.hidden || document.hidden || root.classList.contains('booting') || root.classList.contains('gaming') || $('.win[data-app="games"]')) return;
+    sleepEl.hidden = false; tick(); saverStart(); IDLE.last = performance.now();
+  }, 2000);
+  new MutationObserver(function(){ if(!sleepEl.hidden) IDLE.shown = performance.now(); }).observe(sleepEl, { attributes:true, attributeFilter:['hidden'] });
+  sleepEl.addEventListener('pointermove', function(e){ if(e.pointerType !== 'touch' && performance.now() - IDLE.shown > 1500) wake(); });
+/* tigOS core app.js, part 27: eggs. The parts in this folder are concatenated in name order by build.py, so they share one scope. */
+  /* ---------------- easter eggs: the Konami code throws a party (wallpaper cycles hue, the dock and pets dance, confetti, a jingle if the
+     arcade synth is loaded), `do a barrel roll` rolls the whole desktop once, `sl` runs the classic locomotive across the terminal.
+     Terminal commands from this part and the screensavers are registered through EXTRA_CMDS (13-pets.js merges them into CMD). ---------------- */
+  var KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'], kIdx = 0, PARTY = { t:0, raf:0 };
+  document.addEventListener('keydown', function(e){
+    var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    kIdx = (k === KONAMI[kIdx]) ? kIdx + 1 : (k === KONAMI[0] ? 1 : 0);
+    if(kIdx === KONAMI.length){ kIdx = 0; party(true, 'You found the Konami code.'); }
+  });
+  function confetti(on){
+    var cv = $('#confetti'); if(!cv) return; cancelAnimationFrame(PARTY.raf);
+    if(!on){ cv.hidden = true; return; }
+    cv.hidden = false; var c = cv.getContext('2d'), W = cv.width = root.clientWidth, H = cv.height = root.clientHeight, bits = [], last = 0, born = performance.now();
+    var spawn = function(n){ for(var i = 0; i < n; i++) bits.push({ x:Math.random()*W, y:-20 - Math.random()*H*.3, vx:(Math.random()-.5)*120, vy:60 + Math.random()*160, r:Math.random()*6.28, vr:(Math.random()-.5)*8, c:PAL[i % PAL.length], w:6 + Math.random()*6, h:8 + Math.random()*8 }); };
+    spawn(160);
+    var frame = function(ts){
+      if(cv.hidden) return; PARTY.raf = requestAnimationFrame(frame);
+      var dt = Math.min(.05, (ts - (last || ts))*.001); last = ts; c.clearRect(0, 0, W, H);
+      if(ts - born < 6500 && Math.random() < .5) spawn(2);
+      for(var k = bits.length - 1; k >= 0; k--){ var b = bits[k]; b.vy += 30*dt; b.x += (b.vx + Math.sin(ts*.002 + b.r)*40)*dt; b.y += b.vy*dt; b.r += b.vr*dt; if(b.y > H + 30){ bits.splice(k, 1); continue; }
+        c.save(); c.translate(b.x, b.y); c.rotate(b.r); c.fillStyle = b.c; c.fillRect(-b.w/2, -b.h/2, b.w, b.h); c.restore(); }
+      if(!bits.length) cv.hidden = true;
+    };
+    PARTY.raf = requestAnimationFrame(frame);
+  }
+  function jingle(){ var s = window.TIG_SFX; if(!s) return; try { [523, 659, 784, 1047, 784, 1047].forEach(function(f, i){ s.tone('triangle', f, f, .16, .12, i*.11); }); } catch(e){} }
+  function party(on, why){
+    clearTimeout(PARTY.t); if(on === undefined) on = !root.classList.contains('party');
+    root.classList.toggle('party', on);
+    if(on){ toast('Party mode', why || 'Everything dances for nine seconds.'); confetti(true); jingle(); PARTY.t = setTimeout(function(){ party(false); }, 9000); }
+    else confetti(false);
+  }
+  function barrelRoll(){ if(root.classList.contains('roll') || PREF.motion === 'off') return; root.classList.add('roll'); setTimeout(function(){ root.classList.remove('roll'); }, 1300); }
+  var TRAIN = [
+    '      ====        ________                ___________ ',
+    '  _D _|  |_______/        \\__I_I_____===__|_________| ',
+    '   |(_)---  |   H\\________/ |   |        =|___ ___|   ',
+    '   /     |  |   H  |  |     |   |         ||_| |_||   ',
+    '  |      |  |   H  |__--------------------| [___] |   ',
+    '  | ________|___H__/__|_____/[][]~\\_______|       |   ',
+    '  |/ |   |-----------I_____I [][] []  D   |=======|__ ',
+    '__/ =| o |=-~~\\  /~~\\  /~~\\  /~~\\ ____Y___________|__ ',
+    ' |/-=|___|=    ||    ||    ||    |_____/~\\___/        ',
+    '  \\_/      \\O=====O=====O=====O_/      \\_/            '];
+  var EXTRA_CMDS = {
+    screensaver: function(a, T){
+      a = (a || '').trim().toLowerCase(); var p = a.split(/\s+/);
+      if(!a || a === 'list' || a === 'help'){ T.print('screensavers: '+Object.keys(SAVERS).map(function(k){ return T.o(k)+(PREF.saver === k ? ' *' : ''); }).join('  ')+'  '+T.o('random')+(PREF.saver === 'random' ? ' *' : '')); T.print('usage: screensaver &lt;name&gt;  \u00b7  screensaver use &lt;name&gt;  \u00b7  screensaver idle &lt;minutes|off&gt;   (starts after '+(PREF.idle === 'off' ? 'never' : PREF.idle+' min')+')'); return; }
+      if(p[0] === 'idle'){ if(!p[1]){ T.print('starts after: '+(PREF.idle === 'off' ? 'never' : PREF.idle+' min')); return; } var v = /^off|never|0$/.test(p[1]) ? 'off' : String(parseFloat(p[1]) || 'off'); setPref('idle', v); T.print('screensaver starts after '+(v === 'off' ? 'never' : v+' min'), 'ok'); return; }
+      if(p[0] === 'use' || p[0] === 'set'){ if(SAVERS[p[1]] || p[1] === 'random'){ setPref('saver', p[1]); T.print('default screensaver: '+p[1], 'ok'); } else T.print('no screensaver called '+esc(p[1] || '')+'. try: '+Object.keys(SAVERS).join(', ')+', random', 'err'); return; }
+      if(SAVERS[p[0]] || p[0] === 'random'){ T.print('starting '+p[0]+'\u2026 move the mouse or press a key to wake'); setTimeout(function(){ sleepEl.hidden = false; tick(); saverStart(p[0]); }, 350); return; }
+      T.print('no screensaver called '+esc(p[0])+'. try: '+Object.keys(SAVERS).join(', ')+', random', 'err');
+    },
+    party: function(a, T){ var off = /^(off|stop|no|end)/i.test(a || ''); party(!off, 'You asked for it.'); T.print(off ? 'party over. back to work.' : 'party mode on for nine seconds.', 'ok'); },
+    'do': function(a, T){ if(/barrel\s*roll/i.test(a || '')){ barrelRoll(); T.print('whee.', 'ok'); } else T.print('do what? try: '+T.o('do a barrel roll')); },
+    sl: function(a, T){ T.art(TRAIN, 'train'); },
+    konami: function(a, T){ T.print('up up down down left right left right b a. anywhere on the desktop.'); }
+  };
+/* tigOS core app.js, part 28: boot. The parts in this folder are concatenated in name order by build.py, so they share one scope. */
   /* ---------------- boot ---------------- */
   var booted = false;
   function bootSeq(toLogin){

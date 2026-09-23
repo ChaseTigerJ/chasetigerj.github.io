@@ -1200,3 +1200,27 @@ html, body { margin:0 !important; padding:0 !important; height:100%; overflow:hi
   .dock .sep { height:48px; }
   .dk .tip { font-size:13px; }
 }
+/* tigOS styles.css, part 35: live wallpaper, screensavers, party mode, barrel roll, train. The parts in this folder are concatenated in name order by build.py. */
+/* ---------- live wallpaper (WebGL canvas under the orbs; fades in once it renders) ---------- */
+.wall .wallgl { position:absolute; inset:0; width:100%; height:100%; display:block; opacity:0; transition:opacity 1.6s ease; }
+.wall .wallgl.on { opacity:1; }
+.wall .wallgl.on ~ .orb { opacity:.55; }
+/* ---------- confetti over everything but the sleep and power screens ---------- */
+.confetti { position:absolute; inset:0; width:100%; height:100%; z-index:115; pointer-events:none; }
+.confetti[hidden] { display:none; }
+/* ---------- party mode: the wallpaper cycles hue, the dock and pets dance ---------- */
+.tigos.party .wall { animation:partyHue 3s linear infinite; }
+@keyframes partyHue { to { filter:hue-rotate(360deg); } }
+.tigos.party .dk { animation:partyBop .46s var(--spring) infinite alternate; }
+.tigos.party .dk:nth-child(2n) { animation-delay:.12s; } .tigos.party .dk:nth-child(3n) { animation-delay:.24s; } .tigos.party .dk:nth-child(5n) { animation-delay:.36s; }
+@keyframes partyBop { to { transform:translateY(-14px) rotate(-6deg); } }
+.tigos.party #pets .pet { animation:partyDance .4s ease-in-out infinite alternate; }
+@keyframes partyDance { from { transform:translateY(0) rotate(-8deg); } to { transform:translateY(-16px) rotate(8deg); } }
+.tigos.party .home h1 em { animation:partyHue 1.5s linear infinite; }
+.tigos.rm.party .wall, .tigos.rm.party .dk, .tigos.rm.party #pets .pet, .tigos.rm.party .home h1 em { animation:none; }
+/* ---------- do a barrel roll ---------- */
+.tigos.roll { animation:roll 1.2s var(--ease) both; }
+@keyframes roll { to { transform:rotate(360deg); } }
+/* ---------- sl: the locomotive steams across the terminal ---------- */
+.term .line.art.train { overflow:hidden; white-space:pre; animation:train 5s linear both; color:var(--amber); }
+@keyframes train { from { transform:translateX(100%); } to { transform:translateX(-110%); } }
