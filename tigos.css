@@ -1288,3 +1288,18 @@ html, body { margin:0 !important; padding:0 !important; height:100%; overflow:hi
 .ns-note { margin:0; font-size:12px; line-height:1.45; color:rgba(244,241,234,.5); }
 .ns-rec-grid { display:grid; gap:10px; } .ns-rec-grid div { display:flex; flex-direction:column; gap:4px; padding:12px 14px; border-radius:10px; background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.1); } .ns-rec-grid span { font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:rgba(244,241,234,.5); } .ns-rec-grid b { font-size:15px; font-family:ui-monospace, Menlo, monospace; color:#ffd166; } .ns-rec-grid small { display:block; font-size:12px; color:rgba(244,241,234,.55); font-family:inherit; margin-top:2px; }
 @media (max-width:700px) { .ns-panel { width:100%; min-width:0; padding:56px 18px 40px; justify-content:flex-start; overflow:auto; } .ns-menu::before { background:rgba(4,5,10,.72); } .ns-sign span { font-size:28px; padding:8px 14px; } .ns-items button b { font-size:18px; } .ns-cctv-bot { display:none; } .ns-bl, .ns-br { min-width:0; padding:8px 10px; } .ns-hpbar { width:90px; } .ns-pts { font-size:20px; } .ns-ammo { font-size:18px; } .ns-banner { font-size:32px; } .ns-top { top:8px; padding:4px 10px; } }
+/* the fade between chunks (riding the train, walking a tunnel stretch) and the end-of-shift card, which replaces the framework's game-over card */
+.ns-fade { position:absolute; inset:0; background:#000; opacity:0; pointer-events:none; transition:none; }
+.ns-end { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:radial-gradient(ellipse at center, rgba(20,0,0,.55) 0, rgba(0,0,0,.9) 70%); color:#f4f1ea; font-family:-apple-system, BlinkMacSystemFont, Inter, "Segoe UI", Roboto, sans-serif; user-select:none; animation:ns-end-in 1.6s ease-out both; }
+.ns-end[hidden] { display:none; }
+@keyframes ns-end-in { from { opacity:0; } to { opacity:1; } }
+.ns-end-in { display:flex; flex-direction:column; align-items:center; gap:10px; width:min(80%, 560px); padding:28px 34px; border:1px solid rgba(255,59,59,.35); background:rgba(6,4,6,.82); box-shadow:0 30px 90px rgba(0,0,0,.8), inset 0 0 0 1px rgba(255,255,255,.04); text-align:center; }
+.ns-end-in small { font-size:11px; letter-spacing:.32em; color:#ff3b3b; }
+.ns-end-in b { font-family:Georgia, "Times New Roman", serif; font-size:26px; letter-spacing:.06em; line-height:1.15; }
+.ns-end-in > span { font-family:ui-monospace, Menlo, monospace; font-size:13px; color:rgba(244,241,234,.6); }
+.ns-end-in p { margin:6px 0 0; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:rgba(244,241,234,.4); animation:ns-blink 1.4s steps(2) infinite; }
+@keyframes ns-blink { to { opacity:.25; } }
+.ns-end-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; margin-top:8px; }
+.ns-end-grid div { display:flex; flex-direction:column; gap:2px; padding:10px 12px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); text-align:left; }
+.ns-end-grid span { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:rgba(244,241,234,.5); }
+.ns-end-grid b { font-family:ui-monospace, Menlo, monospace; font-size:16px; font-weight:700; color:#ffd166; letter-spacing:0; }
