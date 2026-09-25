@@ -117,7 +117,7 @@
       if(/Eyes/.test(m.name)){ m.emissive.setHex(0x9fe0ff); m.emissiveIntensity = 4; m.userData.fixed = true; } }); }
   function prepTrain(sc){ var THREE = window.THREE; eachMesh(sc, function(o, m){ if(/Glass/.test(m.name)){ m.transparent = false; m.side = THREE.DoubleSide; m.emissive.setHex(0xffc98a); m.emissiveIntensity = .75; }   /* Blender's strength 2.2 plus bloom whites the whole side out */
       if(/Steel|Rib|Bezel/.test(m.name)){ m.metalness = .22; m.roughness = .42; } if(/^Black|Rubber|Dark/.test(m.name)){ m.roughness = .92; } if(/^(Steel|Black|Dark)/.test(m.name)) m.side = THREE.FrontSide;   /* the body panels are one-sided so the interior built in 02-world is all you see from a seat */   /* no environment map: full metalness would render black under point lights; matte darks, or the grazing view along the platform turns the window band grey */ }); }
-  function prepZombie(sc){ eachMesh(sc, function(o, m){ m.roughness = Math.max(m.roughness, .8); if(/Eyes|Glass|Stripe|Lantern/.test(m.name)) m.userData.fixed = true; if(/Stripe/.test(m.name)){ m.emissive.setHex(0xd8d8c0); m.emissiveIntensity = .5; } if(/Lantern|Glass/.test(m.name)){ m.emissive.setHex(0xffb050); m.emissiveIntensity = /Glass/.test(m.name) ? 2.5 : .3; } if(/Badge/.test(m.name)) m.metalness = .3; }); }
+  function prepZombie(sc){ eachMesh(sc, function(o, m){ m.roughness = Math.max(m.roughness, .8); if(/Eyes|Glass|Stripe|Lantern|Socket/.test(m.name)) m.userData.fixed = true; if(/Stripe/.test(m.name)){ m.emissive.setHex(0xd8d8c0); m.emissiveIntensity = .5; } if(/Lantern|Glass/.test(m.name)){ m.emissive.setHex(0xffb050); m.emissiveIntensity = /Glass/.test(m.name) ? 2.5 : .3; } if(/Badge/.test(m.name)) m.metalness = .3; }); }
   function prepGuns(sc){ eachMesh(sc, function(o, m){ if(/Gun$|GunLight|Brass|Iron/.test(m.name)){ m.metalness = Math.min(m.metalness, .3); m.roughness = Math.max(m.roughness, .4); } if(/GunLight/.test(m.name) && !m.userData.dim){ m.userData.dim = true; m.color.multiplyScalar(.72); } if(/Glow/.test(m.name)){ m.emissive.setHex(0xff8a00); m.emissiveIntensity = 2.2; } if(/Green|Teal|Violet|Blue|Red|Purple/.test(m.name)) m.emissiveIntensity = Math.min(m.emissiveIntensity, .7);   /* bloom does the rest; at Blender strength the ray gun's rings white the screen out */ if(/GunGlass/.test(m.name)){ m.transparent = true; m.opacity = .6; } }); }
   function prepProps(sc){ var THREE = window.THREE; eachMesh(sc, function(o, m){ if(/Iron|Steel|Brass|Hydraulic|Grate|Cabinet/.test(m.name)){ m.metalness = Math.min(m.metalness, .3); m.roughness = Math.max(m.roughness, .4); } if(/Beam/.test(m.name)){ m.transparent = true; m.opacity = .16; m.depthWrite = false; m.side = THREE.DoubleSide; m.emissiveIntensity = Math.min(m.emissiveIntensity, .5); } if(/Glass/.test(m.name)){ m.transparent = true; m.opacity = .45; } if(/Plaque/.test(m.name)){ m.emissiveIntensity = 0; } }); }
   /* clone a named node out of a loaded scene with its own materials (so a tint or a flash touches one body, not every copy) */
@@ -177,12 +177,13 @@
         F.machines([{ x:15.5, y:20.5, kind:'box' }, { x:44.5, y:20.5, kind:'ironhide' }, { x:2.5, y:13.5, kind:'quickhands' }, { x:57.5, y:3.5, kind:'doubletap' }, { x:57.5, y:13.5, kind:'fleetfoot' }]);
         F.start(29.5, 13.5, 0); } } ];
   /* the tunnel between stations: a straight run of track with maintenance alcoves (walkways a step up, out of the train's path) and no light to speak of */
-  var TUNNEL = { id:'tunnel', name:'Tunnel', sub:'', band:'#222', accent:'#ff3b3b', wall:'brick', tunnel:true, layout:function(F){
-      [[6, 10], [24, 28], [42, 46]].forEach(function(r){ F.fill(r[0], r[1], 4, 4, 'W'); F.fill(r[0], r[1], 9, 9, 'W'); });
+  var TUNNEL = { id:'tunnel', name:'Tunnel', sub:'', band:'#222', accent:'#ff3b3b', wall:'brick', tunnel:true, seg:0, layout:function(F){
+      var alc = TUNNEL.seg % 2 ? [[10, 14], [30, 34], [48, 52]] : [[6, 10], [24, 28], [42, 46]];   /* the two stretches place their alcoves differently, so the walk does not repeat */
+      alc.forEach(function(r){ F.fill(r[0], r[1], 4, 4, 'W'); F.fill(r[0], r[1], 9, 9, 'W'); }); if(TUNNEL.seg % 2){ F.fill(18, 20, 9, 9, 'W'); F.fill(38, 40, 4, 4, 'W'); }
       F.machines([]); F.start(2.5, 8.5, 0); } };
-  var TUNNEL_SEGS = 3;   /* tunnel chunks between two stations: ~180 m on foot */
-  function genMap(def){
-    CUR = def; MAP = []; for(var z = 0; z < MH; z++){ var row = []; for(var x = 0; x < MW; x++) row.push('#'); MAP.push(row); }
+  var TUNNEL_SEGS = 2;   /* tunnel chunks between two stations: ~120 m on foot, walked as one place */
+  function genMap(def, seg){
+    CUR = def; def.seg = seg || 0; MAP = []; for(var z = 0; z < MH; z++){ var row = []; for(var x = 0; x < MW; x++) row.push('#'); MAP.push(row); }
     var fill = function(x0, x1, z0, z1, ch){ for(var zz = z0; zz <= z1; zz++) for(var xx = x0; xx <= x1; xx++) MAP[zz][xx] = ch; };
     var put = function(x, z, ch){ MAP[z][x] = ch; };
     BUY_AT = {}; MACHINES = []; POWER_AT = null; START = { x:17.5, y:13.5, a:0 };
@@ -228,7 +229,9 @@
   function ceilAt(x, z){ return (x < 0 || z < 0 || x >= MW || z >= MH) ? CEIL_LO : CEILH[z][x]; }
 /* tigOS arcade, Nightshift part 02: the world builder. Turns the grid into merged meshes (one per material) plus props, lights and the
    train. Everything is boxes, cylinders and quads with canvas textures. buildWorld(scene, opts) builds one chunk (a station or a tunnel stretch) into a group
-   and returns handles the game animates; world.root is removed and disposed when the player moves down the line. */
+   and returns handles the game animates. Built worlds are kept: moving down the line detaches the old root from the scene (world.detach) and
+   re-attaches a cached one when you come back (world.attach), so a chunk swap costs no geometry, no textures and no shader compiles. The train
+   is built once at scene level (buildTrain) and shared by every chunk. */
   function Geo(){ this.p = []; this.n = []; this.uv = []; this.i = []; this.c = 0; }
   Geo.prototype.quad = function(v0, v1, v2, v3, uv, want){   /* four corners in order, uv = [[u,v] x4], want = the side the face must show */
     var ax = v1[0] - v0[0], ay = v1[1] - v0[1], az = v1[2] - v0[2], bx = v2[0] - v0[0], by = v2[1] - v0[1], bz = v2[2] - v0[2];
@@ -241,7 +244,7 @@
   function buildWorld(scene, opts){
     opts = opts || {}; var THREE = window.THREE, A = assets(), M = A.mat, T = A.tex, geos = {}, def = CUR, tunnel = !!def.tunnel, SM = A.stationMats(def);
     var root = new THREE.Group(); scene.add(root);
-    var world = { root:root, def:def, lights:[], tubes:[], props:[], doors:{}, buys:{}, machines:{}, power:null, sandbags:[], dispose:[], signals:[], add:function(o){ root.add(o); return o; } };
+    var world = { root:root, def:def, lights:[], tubes:[], props:[], doors:{}, buys:{}, machines:{}, power:null, sandbags:[], dispose:[], signals:[], textures:[SM.band.map, SM.sign.map], add:function(o){ root.add(o); return o; } };   /* textures: what the renderer uploads ahead of the first visit */
     var G = function(k){ return geos[k] || (geos[k] = new Geo()); };
     var wallMat = function(c, x, z){ return c === '%' ? 'brick' : 'tile'; };
     /* a vertical face along the edge from (ax,az) to (bx,bz), y0..y1, showing toward (wx,wz) */
@@ -281,7 +284,18 @@
     var box = function(w, h, d, mat, x, y, z){ var g = new THREE.BoxGeometry(w, h, d), m = new THREE.Mesh(g, mat); m.position.set(x, y, z); world.dispose.push(g); return m; };
     var cyl = function(r0, r1, h, mat, x, y, z, seg){ var g = new THREE.CylinderGeometry(r0, r1, h, seg || 12), m = new THREE.Mesh(g, mat); m.position.set(x, y, z); world.dispose.push(g); return m; };
     var plane = function(w, h, mat, x, y, z, dir){ var g = new THREE.PlaneGeometry(w, h), m = new THREE.Mesh(g, mat); m.position.set(x, y, z); m.rotation.y = Math.atan2(dir[0], dir[1]); world.dispose.push(g); return m; };   /* dir = the way the plane faces */
-    var textTex = function(w, h, fn){ var c = mk(w, h); fn(c.getContext('2d'), w, h); var t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; world.dispose.push(t); return t; };
+    var textTex = function(w, h, fn){ var c = mk(w, h); fn(c.getContext('2d'), w, h); var t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; world.dispose.push(t); world.textures.push(t); return t; };
+    /* chalk: a stroke that wobbles like a hand did it, drawn twice at low alpha so it dusts */
+    var chalkPath = function(x, pts, close){ for(var pass = 0; pass < 2; pass++){ x.beginPath(); pts.forEach(function(q, i){ var jx = q[0] + (srand() - .5)*2.2, jy = q[1] + (srand() - .5)*2.2; if(i) x.lineTo(jx, jy); else x.moveTo(jx, jy); }); if(close) x.closePath(); x.strokeStyle = pass ? 'rgba(244,241,234,.55)' : 'rgba(244,241,234,.95)'; x.lineWidth = pass ? 4.5 : 2.6; x.lineJoin = 'round'; x.lineCap = 'round'; x.stroke(); } };
+    var chalkBox = function(x, x0, y0, w, h){ x.setLineDash([9, 7]); chalkPath(x, [[x0, y0], [x0 + w, y0], [x0 + w, y0 + h], [x0, y0 + h]], true); x.setLineDash([]); };
+    /* the gun silhouettes, in a 100 x 40 box: receiver, barrel, grip, magazine, stock and the odd sight, per class of weapon */
+    var CHALK = { smg:[[[18,14],[62,14],[62,25],[18,25]], [[62,17],[90,17],[90,21],[62,21]], [[28,25],[37,25],[39,38],[30,38]], [[46,25],[54,25],[52,40],[44,40]], [[18,16],[5,17],[5,22],[18,23]], [[40,10],[44,10],[44,14],[40,14]]],
+      rifle:[[[22,14],[64,14],[64,24],[22,24]], [[64,16],[98,16],[98,20],[64,20]], [[30,24],[38,24],[40,37],[32,37]], [[46,24],[55,24],[58,38],[49,38]], [[22,15],[2,18],[2,26],[22,24]], [[38,9],[58,9],[58,14],[38,14]], [[66,14],[68,10],[70,14]]],
+      shotgun:[[[26,15],[60,15],[60,25],[26,25]], [[60,16],[98,16],[98,20],[60,20]], [[62,20],[88,20],[88,24],[62,24]], [[26,15],[3,19],[3,28],[26,25]], [[32,25],[40,25],[42,36],[34,36]], [[66,11],[70,11],[70,16],[66,16]]],
+      sniper:[[[24,15],[58,15],[58,24],[24,24]], [[58,17],[99,17],[99,20],[58,20]], [[30,24],[38,24],[40,36],[32,36]], [[44,24],[50,24],[50,33],[44,33]], [[24,15],[4,17],[4,27],[24,24]], [[34,8],[56,8],[56,13],[34,13]], [[38,13],[40,15]], [[52,13],[54,15]], [[82,20],[80,30]], [[90,20],[92,30]]],
+      lmg:[[[18,13],[64,13],[64,26],[18,26]], [[64,16],[96,16],[96,21],[64,21]], [[28,26],[37,26],[39,38],[30,38]], [[40,26],[58,26],[58,38],[40,38]], [[18,15],[4,17],[4,25],[18,25]], [[40,8],[52,8],[52,13],[40,13]], [[74,21],[70,34]], [[80,21],[84,34]]] };
+    var CHALK_OF = { wasp:'smg', stitcher:'smg', reaper:'rifle', doorman:'shotgun', longbow:'sniper', anvil:'lmg' };
+    var chalkGun = function(x, id, x0, y0, w, h){ var parts = CHALK[CHALK_OF[id] || 'smg']; parts.forEach(function(poly){ chalkPath(x, poly.map(function(q){ return [x0 + q[0]/100*w, y0 + q[1]/40*h]; }), poly.length > 2); }); };
     var faceCenter = function(p, inset){ inset = inset || 0; return { x:p.x + .5 + p.dir[0]*(.5 - inset), z:p.z + .5 + p.dir[1]*(.5 - inset), dir:[-p.dir[0], -p.dir[1]] }; };   /* on the wall face, looking back into the room */
     var prop = function(kind, mats){ var sc = MODELS.props; if(!sc) return null; var g = cloneNode(sc, kind); if(!g) return null; g.userData.mats.forEach(function(m){ if(mats) mats(m); }); g.traverse(function(o){ if(o.isMesh){ o.matrixAutoUpdate = true; } }); return g; };   /* a Blender prop with its own materials, or null when the model has not arrived */
     var posterN = 0, bandDone = {};
@@ -306,9 +320,16 @@
       else if(isDoor(k)){ var vert = isOpen(ch(p.x, p.z - 1)) || isOpen(ch(p.x, p.z + 1)), h = p.cy - .05, d = new THREE.Group();
         var lt = textTex(256, 128, function(x, w, hh3){ x.fillStyle = '#ffd166'; x.fillRect(0, 0, w, hh3); x.fillStyle = '#1a1208'; x.fillRect(6, 6, w - 12, hh3 - 12); text(x, 'LOCKED', 128, 40, 34, '#ffd166', 'center', 900); text(x, DOOR_COST[k]+' PTS', 128, 90, 30, '#fff', 'center', 900); }), lm = new THREE.MeshStandardMaterial({ map:lt, roughness:.6, emissive:0x332200, emissiveIntensity:.6 });
         var gate = prop('gate'), entry = { grp:d, h:h, mat:lm, signs:[], model:!!gate };
-        if(gate){ gate.scale.set(1, h/2.5, 1); gate.rotation.y = vert ? Math.PI/2 : 0; d.add(gate); var slats = gate.getObjectByName('Slats'), lock = gate.getObjectByName('Lock'), plaque = gate.getObjectByName('Plaque'); if(plaque){ plaque.traverse(function(o){ if(o.isMesh) o.material = lm; }); var p2 = plaque.clone(); p2.rotation.y = Math.PI; p2.position.z = -plaque.position.z; gate.add(p2); entry.signs = [plaque, p2]; }
+        /* the painted sign: spray-stencilled chevrons and THIS WAY on the slats, the way a Zombies map marks a door you can buy through. Both faces. */
+        var pt = textTex(256, 384, function(x, w, hh4){ x.clearRect(0, 0, w, hh4); x.fillStyle = '#ffd166'; for(var cv = 0; cv < 3; cv++){ var cy = 62 + cv*56; x.beginPath(); x.moveTo(52, cy + 44); x.lineTo(128, cy); x.lineTo(204, cy + 44); x.lineTo(204, cy + 70); x.lineTo(128, cy + 26); x.lineTo(52, cy + 70); x.closePath(); x.fill(); }
+          x.font = '900 46px '+FONT; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('THIS', 128, 266); x.fillText('WAY', 128, 314); x.font = '800 24px '+FONT; x.fillText(DOOR_COST[k]+' PTS', 128, 354);
+          for(var sp = 0; sp < 900; sp++){ x.fillStyle = 'rgba(255,209,102,'+(srand()*.35)+')'; x.fillRect(srand()*w, srand()*hh4, 1 + srand()*2, 1 + srand()*2); } for(var dr = 0; dr < 7; dr++){ var dx0 = 40 + srand()*176, dy0 = 90 + srand()*260; x.fillStyle = 'rgba(255,209,102,.8)'; x.fillRect(dx0, dy0, 3, 12 + srand()*40); }
+          x.globalCompositeOperation = 'destination-out'; for(var sc2 = 0; sc2 < 260; sc2++){ x.fillStyle = 'rgba(0,0,0,'+(.3 + srand()*.7)+')'; x.fillRect(srand()*w, srand()*hh4, 2 + srand()*5, 1 + srand()*2); } x.globalCompositeOperation = 'source-over'; }), pmat = new THREE.MeshBasicMaterial({ map:pt, transparent:true, polygonOffset:true, polygonOffsetFactor:-1 });
+        if(gate){ gate.scale.set(1, h/2.5, 1); gate.rotation.y = vert ? 0 : Math.PI/2; d.add(gate);   /* the model spans X and is thin in Z: it stands across a north-south passage unturned, and turns a quarter for an east-west one */
+          var slats = gate.getObjectByName('Slats'), lock = gate.getObjectByName('Lock'), plaque = gate.getObjectByName('Plaque'); if(plaque){ plaque.traverse(function(o){ if(o.isMesh) o.material = lm; }); var p2 = plaque.clone(); p2.rotation.y = Math.PI; p2.position.z = -plaque.position.z; gate.add(p2); entry.signs = [plaque, p2]; }
           entry.gate = slats || gate; entry.lock = lock; entry.slats = slats; entry.y0 = entry.gate.position.y; }
         else { var gm = box(vert ? .96 : .08, h, vert ? .08 : .96, M.grate, 0, h/2, 0); d.add(gm); d.add(box(vert ? 1.02 : .2, .22, vert ? .2 : 1.02, M.metal, 0, p.cy - .1, 0)); var s1 = plane(.6, .3, lm, vert ? 0 : .05, 1.35, vert ? .05 : 0, vert ? [0, 1] : [1, 0]), s2 = plane(.6, .3, lm, vert ? 0 : -.05, 1.35, vert ? -.05 : 0, vert ? [0, -1] : [-1, 0]); d.add(s1); d.add(s2); entry.gate = gm; entry.signs = [s1, s2]; entry.y0 = gm.position.y; }
+        var pa = plane(.9, 1.35, pmat, vert ? 0 : .085, .95, vert ? .085 : 0, vert ? [0, 1] : [1, 0]), pb = plane(.9, 1.35, pmat, vert ? 0 : -.085, .95, vert ? -.085 : 0, vert ? [0, -1] : [-1, 0]); d.add(pa); d.add(pb); entry.signs = entry.signs.concat([pa, pb]); entry.paint = [pa, pb];
         d.position.set(p.x + .5, 0, p.z + .5); root.add(d); world.doors[p.x+','+p.z] = entry; }
       else if(k === 'S'){ fc = faceCenter(p); var sg = new THREE.Group(), dx = p.dir[0], dz = p.dir[1], hh2 = p.cy - p.fy;
         sg.add(box(dx ? 1.3 : .06, hh2, dx ? .06 : 1.3, M.dark, dx*.65 + dz*.5, hh2/2, dz*.65 + dx*.5)); sg.add(box(dx ? 1.3 : .06, hh2, dx ? .06 : 1.3, M.dark, dx*.65 - dz*.5, hh2/2, dz*.65 - dx*.5)); sg.add(box(dx ? .06 : 1, hh2, dx ? 1 : .06, M.dark, dx*1.3, hh2/2, dz*1.3)); sg.add(box(dx ? 1.3 : 1, .06, dx ? 1 : 1.3, M.dark, dx*.65, hh2 - .03, dz*.65));   /* the alcove: two sides, a back wall and a lid */
@@ -317,8 +338,8 @@
         var ex = plane(.7, .26, M.exit, dx*-.02, p.cy - .45, dz*-.02, [-dx, -dz]); sg.add(ex);
         sg.position.set(fc.x, p.fy, fc.z); root.add(sg); world.sandbags.push(sg); }
       else if(k === 'X' && BUY_AT[p.wx+','+p.wz]){ fc = faceCenter(p, .02); var wid = BUY_AT[p.wx+','+p.wz], wp = WEAPONS[wid];
-        var bt = textTex(256, 160, function(x, w, h4){ x.clearRect(0, 0, w, h4); x.strokeStyle = '#f4f1ea'; x.lineWidth = 4; x.setLineDash([10, 8]); x.strokeRect(8, 8, w - 16, h4 - 16); x.setLineDash([]); text(x, wp.name.toUpperCase(), 128, 40, 30, '#f4f1ea', 'center', 900); x.fillStyle = '#f4f1ea'; x.fillRect(60, 70, 136, 12); x.fillRect(150, 60, 40, 10); x.fillRect(66, 82, 18, 30); x.fillRect(120, 82, 14, 18); text(x, wp.cost+' PTS', 128, 136, 26, '#ffd166', 'center', 900); }), bm = new THREE.MeshBasicMaterial({ map:bt, transparent:true }), bp = plane(1.3, .82, bm, fc.x, 1.65, fc.z, fc.dir); root.add(bp); world.buys[p.wx+','+p.wz] = bp;
-        if(MODELS.guns){ var wg = cloneNode(MODELS.guns, wid); if(wg){ wg.traverse(function(o){ if(o.name.indexOf('Glow') === 0) o.visible = false; }); wg.scale.set(1.6, 1.6, 1.6); wg.position.set(fc.x + fc.dir[0]*.12, 1.62, fc.z + fc.dir[1]*.12); wg.rotation.y = Math.atan2(fc.dir[0], fc.dir[1]) + Math.PI/2; wg.rotation.z = .08; root.add(wg); bp.visible = false; var chalk = plane(1.5, .95, bm, fc.x, 1.65, fc.z, fc.dir); root.add(chalk); world.buys[p.wx+','+p.wz] = chalk; } } }   /* the gun itself hangs on the chalk outline once the models are in */
+        /* the wall buy is a chalk drawing of the gun, its name and its price, the way the original Zombies maps mark them: no model hangs on the wall */
+        var bt = textTex(256, 160, function(x, w, h4){ x.clearRect(0, 0, w, h4); chalkBox(x, 8, 8, w - 16, h4 - 16); text(x, wp.name.toUpperCase(), 128, 34, 28, '#f4f1ea', 'center', 900); chalkGun(x, wid, 40, 54, 176, 56); text(x, wp.cost+' PTS', 128, 136, 26, '#ffd166', 'center', 900); for(var cd = 0; cd < 500; cd++){ x.fillStyle = 'rgba(244,241,234,'+(srand()*.12)+')'; x.fillRect(srand()*w, srand()*h4, 1, 1); } }), bm = new THREE.MeshBasicMaterial({ map:bt, transparent:true }), bp = plane(1.5, .95, bm, fc.x, 1.65, fc.z, fc.dir); root.add(bp); world.buys[p.wx+','+p.wz] = bp; }
       else if(k === 'K'){ fc = faceCenter(p, .25); var kg = new THREE.Group(); kg.add(box(.7, .34, .44, new THREE.MeshStandardMaterial({ color:0x2f4a2a, roughness:.8 }), 0, .17, 0)); kg.add(box(.6, .3, .4, new THREE.MeshStandardMaterial({ color:0x35552f, roughness:.8 }), .05, .5, .02)); kg.add(box(.72, .04, .46, M.dark, 0, .35, 0));
         var kt = textTex(256, 64, function(x, w, h5){ x.fillStyle = '#1a1208'; x.fillRect(0, 0, w, h5); text(x, 'RESUPPLY \u00b7 250', 128, 32, 28, '#ffd166', 'center', 900); }); kg.add(plane(1, .25, new THREE.MeshBasicMaterial({ map:kt }), p.dir[0]*.2, 1.5, p.dir[1]*.2, fc.dir)); kg.position.set(fc.x, p.fy, fc.z); root.add(kg); }
       else if(k === 'Y'){ fc = faceCenter(p, .06); var pg2 = prop('power'), yg = new THREE.Group(), lever, lamp;
@@ -377,19 +398,38 @@
     root.add(new THREE.HemisphereLight(0x303848, 0x0c0a08, tunnel ? .2 : .45));
     root.add(new THREE.AmbientLight(0x1a1c24, tunnel ? .3 : .6));
 
-    /* ---------- the train: four cars, lit windows, headlights. It lives in the tunnel until the game calls it. The Blender consist
-       (blender/train.py, an R160-style NYC set) replaces the box stand-in the moment its .glb arrives; the group, nose, tail and headlight stay. ---------- */
+    /* ---------- the chunk's life: attach on arrival (or return), detach on leaving, destroy only when the game closes ----------
+       The map globals (MACHINES, BOXM) are remade by genMap every time a chunk loads, so on attach the world's render handles are rebound to
+       the current machine objects and the box is shown or not as the run has it. */
+    world.attach = function(machines, o){ if(root.parent !== scene) scene.add(root); o = o || {};
+      (machines || []).forEach(function(m){ var wm = world.machines[m.kind]; if(!wm || wm === m) return; Object.keys(wm).forEach(function(k){ if(!(k in m)) m[k] = wm[k]; }); world.machines[m.kind] = m; });
+      var bx = world.machines.box; if(bx){ bx.here = !!o.boxHere; if(bx.model){ bx.chest.children.forEach(function(c2){ if(c2 !== bx.pedestal && c2 !== bx.beam && c2 !== bx.bear) c2.visible = bx.here; }); bx.pedestal.visible = !bx.here; bx.beam.visible = false; bx.bear.visible = false; } else { bx.chest.visible = bx.here; bx.pedestal.visible = !bx.here; } } };
+    world.detach = function(){ scene.remove(root); };
+    world.destroy = function(){ scene.remove(root); world.dispose.forEach(function(o){ if(o.dispose) o.dispose(); }); root.traverse(function(o){ if(o.geometry && o.geometry.dispose && !(o.userData && o.userData.shared)) o.geometry.dispose(); }); };
+    return world;
+  }
+
+  /* ---------- the train: four cars, lit windows, headlights. Built once at scene level and shared by every chunk; it lives in the tunnel until the
+     game calls it. The Blender consist (blender/train.py, an R160-style NYC set) replaces the box stand-in the moment its .glb arrives; the group,
+     nose, tail and lights stay. Its lights sit in their own always-visible group that follows the train, so the scene's light count never changes
+     when the train appears: a changed light count makes Three.js recompile every shader, and that was the hitch when the train rolled in. ---------- */
+  function buildTrain(scene){
+    var THREE = window.THREE, A = assets(), M = A.mat, T = A.tex, dispose = [];
+    var box = function(w, h, d, mat, x, y, z){ var g = new THREE.BoxGeometry(w, h, d), m = new THREE.Mesh(g, mat); m.position.set(x, y, z); dispose.push(g); return m; };
+    var cyl = function(r0, r1, h, mat, x, y, z, seg){ var g = new THREE.CylinderGeometry(r0, r1, h, seg || 12), m = new THREE.Mesh(g, mat); m.position.set(x, y, z); dispose.push(g); return m; };
+    var plane = function(w, h, mat, x, y, z, dir){ var g = new THREE.PlaneGeometry(w, h), m = new THREE.Mesh(g, mat); m.position.set(x, y, z); m.rotation.y = Math.atan2(dir[0], dir[1]); dispose.push(g); return m; };
     var tr = new THREE.Group(); var carL = 9.2, cars = 4, nose = (cars - 1)*(carL + .3) + carL/2, stand = new THREE.Group(); tr.add(stand);
     for(var ci = 0; ci < cars; ci++){ var cx0 = ci*(carL + .3); var body = box(carL, 2.3, 2.7, M.train, cx0, PIT_Y + 1.55, 0); stand.add(body); stand.add(box(carL, .3, 2.72, M.trainStripe, cx0, PIT_Y + 1.1, 0)); stand.add(box(carL - .6, .5, 2.5, M.dark, cx0, PIT_Y + 2.85, 0)); stand.add(box(carL, .5, 2.2, M.dark, cx0, PIT_Y + .3, 0));
       for(var wi = 0; wi < 5; wi++){ var wx = cx0 - carL/2 + .9 + wi*1.85; stand.add(box(.95, .62, 2.74, M.window, wx, PIT_Y + 1.95, 0)); } for(var wh = 0; wh < 2; wh++){ stand.add(cyl(.42, .42, .3, M.dark, cx0 - carL/2 + 1.5 + wh*(carL - 3), PIT_Y + .42, .8, 10)); stand.add(cyl(.42, .42, .3, M.dark, cx0 - carL/2 + 1.5 + wh*(carL - 3), PIT_Y + .42, -.8, 10)); } }
     stand.children.forEach(function(m){ if(m.geometry.type === 'CylinderGeometry') m.rotation.x = Math.PI/2; });
     var hl1 = box(.3, .3, .3, M.headlight, nose + .05, PIT_Y + 1.2, .8), hl2 = box(.3, .3, .3, M.headlight, nose + .05, PIT_Y + 1.2, -.8); stand.add(hl1); stand.add(hl2);
-    var hlight = new THREE.PointLight(0xfff4e0, 9, 30, 1); hlight.position.set(nose + 1.5, PIT_Y + 1.4, 0); tr.add(hlight);
-    var cabin = new THREE.PointLight(0xfff0dc, 0, 12, 1); cabin.position.set(nose/2, PIT_Y + 2.2, 0); tr.add(cabin);   /* the warm car interior, only lit while you ride */
     var tail1 = box(.2, .2, .2, new THREE.MeshStandardMaterial({ color:0xff2020, emissive:0xff2020, emissiveIntensity:3 }), -carL/2 - .05, PIT_Y + 1.2, .8), tail2 = tail1.clone(); tail2.position.z = -.8; stand.add(tail1); stand.add(tail2);
+    /* the lights ride in their own group (see above): the headlight, the warm cabin light that follows you down the consist, one strip per car */
+    var lights = new THREE.Group(), hlight = new THREE.PointLight(0xfff4e0, 0, 30, 1); hlight.position.set(nose + 1.5, PIT_Y + 1.4, 0); lights.add(hlight);
+    var cabin = new THREE.PointLight(0xfff0dc, 0, 12, 1); cabin.position.set(nose/2, PIT_Y + 2.2, 0); lights.add(cabin); var carLights = [];
     /* the interior you ride in: the Blender shell is one-sided, so the inside is built here (floor, ceiling, wall panels with the door gaps left open,
        benches, poles, strip lights). Cheap boxes; the shell hides it from the platform except through the doors. */
-    var inner = new THREE.Group(), carLights = [], seatA = new THREE.MeshStandardMaterial({ color:0x2a4f8a, roughness:.55 }), seatB = new THREE.MeshStandardMaterial({ color:0xd8742a, roughness:.55 }), wallM = new THREE.MeshStandardMaterial({ map:T.metal, color:0x585c64, emissive:0x0e1014, roughness:.62, metalness:.3 }), ceilM = new THREE.MeshStandardMaterial({ map:T.ceiling, color:0x8a8a92, emissive:0x141620, roughness:.85 }), carTube = new THREE.MeshStandardMaterial({ color:0xf4f6ff, emissive:0xdfe8ff, emissiveIntensity:1.05, roughness:.4 }), winM = new THREE.MeshStandardMaterial({ color:0x0a1020, roughness:.12, metalness:.6, transparent:true, opacity:.8 }), linoM = new THREE.MeshStandardMaterial({ map:T.concrete, color:0x8a8478, roughness:.9 }), adM = new THREE.MeshStandardMaterial({ map:T.posters[1], roughness:.9 });
+    var inner = new THREE.Group(), seatA = new THREE.MeshStandardMaterial({ color:0x2a4f8a, roughness:.55 }), seatB = new THREE.MeshStandardMaterial({ color:0xd8742a, roughness:.55 }), wallM = new THREE.MeshStandardMaterial({ map:T.metal, color:0x585c64, emissive:0x0e1014, roughness:.62, metalness:.3 }), ceilM = new THREE.MeshStandardMaterial({ map:T.ceiling, color:0x8a8a92, emissive:0x141620, roughness:.85 }), carTube = new THREE.MeshStandardMaterial({ color:0xf4f6ff, emissive:0xdfe8ff, emissiveIntensity:1.05, roughness:.4 }), winM = new THREE.MeshStandardMaterial({ color:0x0a1020, roughness:.12, metalness:.6, transparent:true, opacity:.8 }), linoM = new THREE.MeshStandardMaterial({ map:T.concrete, color:0x8a8478, roughness:.9 }), adM = new THREE.MeshStandardMaterial({ map:T.posters[1], roughness:.9 });
     for(var ci2 = 0; ci2 < cars; ci2++){ var cx2 = ci2*(carL + .3), fy0 = TRAIN_FLOOR, cy0 = PIT_Y + 3.0;
       inner.add(box(carL - .2, .04, 2.5, linoM, cx2, fy0, 0)); inner.add(box(carL - .2, .04, 2.5, ceilM, cx2, cy0, 0));
       inner.add(box(.05, cy0 - fy0, 2.5, wallM, cx2 - carL/2 + .12, (fy0 + cy0)/2, 0)); inner.add(box(.05, cy0 - fy0, 2.5, wallM, cx2 + carL/2 - .12, (fy0 + cy0)/2, 0));
@@ -399,15 +439,14 @@
           if(si === 1) inner.add(plane(1.2, .36, adM, mx2, cy0 - .38, sd*1.22, [0, -sd])); }); });
       for(var pl = -1; pl <= 1; pl += 2){ var pole = cyl(.02, .02, cy0 - fy0 - .06, M.rail, cx2 + pl*2.3, (fy0 + cy0)/2, .55, 8); inner.add(pole); }
       for(var lt = 0; lt < 3; lt++){ inner.add(box(2.2, .05, .16, carTube, cx2 - 3 + lt*3, cy0 - .07, -.5)); inner.add(box(2.2, .05, .16, carTube, cx2 - 3 + lt*3, cy0 - .07, .5)); }
-      [-2.4, 2.4].forEach(function(lx){ var carL2 = new THREE.PointLight(0xe8ecff, 0, 7, 1); carL2.position.set(cx2 + lx, cy0 - .25, 0); inner.add(carL2); carLights.push(carL2); }); }
+      var carL2 = new THREE.PointLight(0xe8ecff, 0, 8, 1); carL2.position.set(cx2, cy0 - .25, 0); lights.add(carL2); carLights.push(carL2); }
     tr.add(inner);
-    tr.position.set(-200, 0, TRACK_Z); tr.visible = false; root.add(tr);
-    world.train = { grp:tr, tail:-carL/2, nose:nose, hlight:hlight, cabin:cabin, inner:inner, carLights:carLights, model:false, doors:[], carL:carL, cars:cars, floorY:TRAIN_FLOOR };
-    world.setTrain = function(sc){ if(world.train.model) return; stand.visible = false; sc.position.set(0, PIT_Y, 0); tr.add(sc); world.train.model = true; world.train.doors = []; sc.traverse(function(o){ if(/^Door[LR]/.test(o.name) && !o.isMesh){   /* the leaf empties only: their meshes carry the same name prefix and must ride along, not slide twice */ if(o.userData.x0 === undefined) o.userData.x0 = o.position.x; o.userData.side = o.name.charAt(4) === 'L' ? -1 : 1; world.train.doors.push(o); } }); };   /* the glb is modelled with car 0 at x=0 and rails at y=0, along +X, so it drops straight onto the stand-in's frame */
-    if(MODELS.train) world.setTrain(MODELS.train);
-    world.dispose.push({ dispose:function(){ if(MODELS.train && MODELS.train.parent === tr) tr.remove(MODELS.train); } });   /* the consist is shared down the line: unhook it before this chunk's geometry goes */
-    world.destroy = function(){ scene.remove(root); world.dispose.forEach(function(o){ if(o.dispose) o.dispose(); }); root.traverse(function(o){ if(o.geometry && o.geometry.dispose && !(o.userData && o.userData.shared)) o.geometry.dispose(); }); };
-    return world;
+    tr.position.set(-200, 0, TRACK_Z); tr.visible = false; scene.add(tr); lights.position.set(-200, 0, TRACK_Z); scene.add(lights);
+    var train = { grp:tr, lights:lights, stand:stand, tail:-carL/2, nose:nose, hlight:hlight, cabin:cabin, inner:inner, carLights:carLights, model:false, doors:[], carL:carL, cars:cars, floorY:TRAIN_FLOOR };
+    train.setModel = function(sc){ if(train.model) return; stand.visible = false; sc.position.set(0, PIT_Y, 0); tr.add(sc); train.model = true; train.doors = []; sc.traverse(function(o){ if(/^Door[LR]/.test(o.name) && !o.isMesh){   /* the leaf empties only: their meshes carry the same name prefix and must ride along, not slide twice */ if(o.userData.x0 === undefined) o.userData.x0 = o.position.x; o.userData.side = o.name.charAt(4) === 'L' ? -1 : 1; train.doors.push(o); } }); };   /* the glb is modelled with car 0 at x=0 and rails at y=0, along +X, so it drops straight onto the stand-in's frame */
+    if(MODELS.train) train.setModel(MODELS.train);
+    train.dispose = function(){ if(MODELS.train && MODELS.train.parent === tr) tr.remove(MODELS.train); scene.remove(tr); scene.remove(lights); dispose.forEach(function(g){ g.dispose(); }); };
+    return train;
   }
 /* tigOS arcade, Nightshift part 03: actors. The dead (the Blender humanoid in blender/humanoid.py, dressed per kind, with the jointed capsule
    body as the stand-in until the model lands), the wraith, the weapon viewmodels (blender/guns.py, with the hands on the grips), particles, tracers,
@@ -449,18 +488,25 @@
     var THREE = window.THREE, TX = ztex()[v], pal = PALS[v], g = cloneNode(MODELS.zombie, 'Root'), P = {}, by = {}, brute = kind === 'brute', cond = kind === 'conductor';
     g.traverse(function(o){ by[o.name] = o; });
     var show = function(names, on){ names.forEach(function(n){ if(by[n]) by[n].visible = on; }); };
-    show(['HardHat', 'Cap', 'Vest', 'Badge', 'Belt', 'Coat', 'Lantern', 'Hair'], false);
+    show(['HardHat', 'Cap', 'Vest', 'Badge', 'Belt', 'Coat', 'Lantern', 'Hair', 'Ribs', 'Tatters', 'WoundHead', 'WoundBelly', 'SleeveTornR', 'ArmSkinR', 'ArmGoreR', 'ShinTornL', 'ShinSkinL', 'ShinGoreL'], false);
+    var uniform = kind === 'mta' || kind === 'nypd';
     if(kind === 'mta') show(['Vest', 'HardHat', 'Belt'], true); else if(kind === 'nypd') show(['Cap', 'Badge', 'Belt'], true); else if(cond) show(['Coat', 'Cap', 'Lantern', 'Belt'], true); else if(Math.random() < .72) show(['Hair'], true);
+    /* the damage: every body torn a little differently. The crowd is the worst of it; the transit dead kept most of the uniform; the Conductor kept his coat. */
+    var dmgK = cond ? .15 : uniform ? .45 : 1;
+    if(Math.random() < .75*dmgK && !uniform && !cond) show(['Tatters'], true); if(Math.random() < .55*dmgK && !uniform && !cond) show(['Ribs'], true);
+    if(Math.random() < .45*dmgK) show(['WoundHead'], true); if(Math.random() < .5*dmgK && !cond) show(['WoundBelly'], true);
+    if(Math.random() < .55*dmgK && !cond){ show(['UpperArmR'], false); show(['SleeveTornR', 'ArmSkinR', 'ArmGoreR'], true); }
+    if(Math.random() < .45*dmgK && !cond){ show(['ShinL'], false); show(['ShinTornL', 'ShinSkinL', 'ShinGoreL'], true); }
     var mats = g.userData.mats; mats.forEach(function(m){ var n = m.name;
       if(n === 'Skin'){ m.map = TX.skin; m.color.set(0xffffff); } else if(n === 'Shirt'){ m.map = TX.cloth; m.color.set(0xffffff); } else if(n === 'Pants'){ m.map = TX.pants; m.color.set(0xffffff); } else if(n === 'Hair'){ m.color.set(pal.hair); }
-      else if(n === 'Coat'){ m.color.set(0x1c1f2e); } else if(n === 'Cap'){ m.color.set(cond ? 0x1c1f2e : 0x161c33); } else if(n === 'Eyes'){ m.emissive.setHex(cond ? 0xffb050 : 0xff2a2a); m.emissiveIntensity = cond ? 4 : 3; }
+      else if(n === 'Coat'){ m.color.set(0x1c1f2e); } else if(n === 'Cap'){ m.color.set(cond ? 0x1c1f2e : 0x161c33); } else if(n === 'Eyes'){ m.emissive.setHex(cond ? 0xffb050 : brute ? 0xff3020 : 0xffae1a); m.emissiveIntensity = cond ? 4 : 3.2; m.color.setHex(cond ? 0xffb050 : brute ? 0xff3020 : 0xffae1a); }   /* the lit eyes of the Zombies maps: yellow on the crowd, red on a brute, the Conductor's lantern amber */
       m.needsUpdate = true; });
     mats.sort(function(a, b){ return (a.userData.fixed ? 1 : 0) - (b.userData.fixed ? 1 : 0); });
     P.torso = by.Torso || g; P.headP = by.Neck; P.jaw = by.Jaw; P.armL = by.ShoulderL; P.armL.elbow = by.ElbowL; P.armR = by.ShoulderR; P.armR.elbow = by.ElbowR; P.legL = by.HipL; P.legL.knee = by.KneeL; P.legR = by.HipR; P.legR.knee = by.KneeR;
-    var light = null; if(cond && by.Lantern){ light = new THREE.PointLight(0xffb050, 1.6, 9, 1); light.position.set(0, -.05, .05); by.Lantern.add(light); }
+    var lantern = cond && by.Lantern ? by.Lantern : null;   /* the renderer's one lantern light follows this node; a light per body would change the scene's light count */
     var s = brute ? 1.28 : cond ? 1.12 : kind === 'runner' ? .96 : .94 + Math.random()*.12; g.scale.set(s*(brute ? 1.18 : 1), s, s*(brute ? 1.1 : 1));
     var body = new THREE.Group(); body.add(g);
-    return { grp:body, inner:g, P:P, mats:mats, s:s, r:(brute ? .48 : .34)*s, h:1.9*s, headY:1.5*s, lop:cond ? .05 : Math.random()*.25, tilt:(Math.random() < .5 ? -1 : 1)*(.08 + Math.random()*.14), hunch:cond ? .04 : .12 + Math.random()*.16, glb:true, human:true, light:light, kind:kind };
+    return { grp:body, inner:g, P:P, mats:mats, s:s, r:(brute ? .48 : .34)*s, h:1.9*s, headY:1.5*s, lop:cond ? .05 : Math.random()*.25, tilt:(Math.random() < .5 ? -1 : 1)*(.08 + Math.random()*.14), hunch:cond ? .04 : .12 + Math.random()*.16, glb:true, human:true, lantern:lantern, kind:kind };
   }
   function makeZombie(v, brute, kind){
     kind = kind || (v === 4 ? 'wraith' : brute ? 'brute' : 'walker'); if(KIND_V[kind] !== null && KIND_V[kind] !== undefined) v = KIND_V[kind]; brute = kind === 'brute';
@@ -531,10 +577,12 @@
       if(up){ d.stripe.forEach(function(s){ var geo = new THREE.BoxGeometry(s[3]*.01, s[4]*.01, s[5]*.01), m = new THREE.Mesh(geo, GM.orange); m.position.set(s[0]*.01, s[1]*.01, s[2]*.01); g.add(m); geos.push(geo); }); }
       else if(id !== 'prism'){ var geo2 = new THREE.BoxGeometry(d.stripe[0][3]*.01*.5, .004, d.stripe[0][5]*.01), m2 = new THREE.Mesh(geo2, GM.teal); m2.position.set(d.stripe[0][0]*.01, d.stripe[0][1]*.01 - .01, 0); g.add(m2); geos.push(geo2); }
       mz = new THREE.Vector3(d.mz[0]*.01, d.mz[1]*.01, d.mz[2]*.01); grip = new THREE.Vector3(d.grip[0]*.01, d.grip[1]*.01, d.grip[2]*.01); }
-    if(up){ var L = new THREE.PointLight(0xff8a00, .5, 1.5, 1); L.position.set(.1, .06, 0); g.add(L); }
-    var fl = new THREE.Mesh(new THREE.PlaneGeometry(.34, .34), A.mat.flash); fl.position.set(mz.x + .1, mz.y, mz.z); fl.rotation.y = Math.PI/2; fl.visible = false; g.add(fl); geos.push(fl.geometry);
+    var bare = !!(opts && opts.bare), fl = new THREE.Mesh(new THREE.PlaneGeometry(.34, .34), A.mat.flash); fl.position.set(mz.x + .1, mz.y, mz.z); fl.rotation.y = Math.PI/2; fl.visible = false; g.add(fl); geos.push(fl.geometry);
     var fl2 = fl.clone(); fl2.rotation.set(0, 0, Math.PI/4); fl2.position.set(mz.x + .16, mz.y, mz.z); fl2.visible = false; g.add(fl2);
-    var ML = new THREE.PointLight(0xffb060, 0, 6, 1); ML.position.copy(mz); g.add(ML);
+    /* the held gun always carries its two lights (the ember of a forged gun at 0 until it is forged) and a display copy carries none: swapping guns or
+       spinning the box must never change the scene's light count, or every shader recompiles */
+    var ML = new THREE.PointLight(0xffb060, 0, 6, 1); ML.position.copy(mz); if(!bare) g.add(ML);
+    if(!bare){ var L = new THREE.PointLight(0xff8a00, up ? .5 : 0, 1.5, 1); L.position.set(.1, .06, 0); g.add(L); }
     return { grp:g, mz:mz, grip:grip, spin:spin, flash:[fl, fl2], light:ML, glb:glb, dispose:function(){ geos.forEach(function(q){ q.dispose(); }); mats.forEach(function(m){ m.dispose(); }); } };
   }
 
@@ -663,7 +711,7 @@
     var THREE = window.THREE, A = assets(), M = A.mat; loadModels();
     var g = {}, snd = Synth(), touch = api.touch, flow = new Int16Array(MW*MH), flowKey = '';
     var special, fogK, P, zombies, pickups, grenades, wave, toSpawn, brutes, spawnT, alive, kills, points, total, hp, maxhp, regenT, doors, power, perks, weapons, slot, fireT, reloadT, reloading, held, mouseDown, trigger, shake, flash, hitM, hitKill, dmgFlash, whiteFlash, banner, bannerT, over, puX2, puInsta, gren, grenT, meleeT, melee, msg, msgT, boxRoll, boxName, boxLast, boxPick, swapT, prompt, t, bob, stepPh, between, recoil, dragX, dragY, flick = 0, flickT = 4, flickTube = null, dripT = 5, train, footY, overMsg, mode = 'menu', booted = false, jumpZ = 0, vz = 0, attract = null, lastRun = null;
-    var stationIdx = 0, rideOff = 0, boxBear = false, boxSpin = null, heads = 0, shots = 0, rode = 0, walked = 0, chunk = null, opened = {}, boxAt = 0, boxUses = {}, bearT = 0, riding = 0, rideT = 0, rideFrom = 0, transit = 0, transitT = 0, conductor = null, condT = 0, passT = 0, fade = 0, fadeTo = 0, dying = 0, endT = 0, ended = false, stats = null, visited = {}, doorsOpenK = 0, chime = 0, spinUp = 0;
+    var stationIdx = 0, rideOff = 0, boxBear = false, boxSpin = null, heads = 0, shots = 0, rode = 0, walked = 0, chunk = null, opened = {}, boxAt = 0, boxUses = {}, bearT = 0, riding = 0, rideT = 0, rideFrom = 0, transit = 0, transitT = 0, conductor = null, condT = 0, passT = 0, prewarmT = 1.2, actorsWarm = false, fade = 0, fadeTo = 0, dying = 0, endT = 0, ended = false, stats = null, visited = {}, doorsOpenK = 0, chime = 0, spinUp = 0;
     var R = null;   /* the renderer bag, built in part 06 */
     function walk(x, z){ var c = ch(x, z); if(c === '.' || c === 'P' || c === 'C' || c === 'W') return !MTILE[x+','+z]; if(c === 'F') return true; if(c === '_') return !trainBlocks(x) || (trainOpen() && Math.abs(z + .5 - TRACK_Z) < 1.6); if(isDoor(c)) return !!doors[x+','+z]; return false; }   /* the car floor is walkable while the train stands with its doors open: that is how you board */
     function trainOpen(){ return !!(train && train.grp.visible && train.v < .2 && train.doors > .5); }
@@ -701,27 +749,31 @@
       visited[STATIONS[0].id] = 1; P.x = START.x; P.y = START.y; P.a = START.a; footY = 0;
       jumpZ = 0; vz = 0; giveWeapon('sidearm'); fireT = 0; api.score(0); startWave(1); status();
     }
-    function newTrain(){ train = { grp:R.world.train.grp, nose:R.world.train.nose, tail:R.world.train.tail, x:-300, v:0, state:'away', next:22, t:0, braking:false, doors:0, released:false, menu:false }; train.grp.visible = false; return train; }
-    /* ---------- the line. One chunk is in memory at a time: the station you stand in, or a stretch of tunnel. What the run remembers about a
-       place (the gates you paid for) is kept out here, so walking back finds it as you left it, and the browser only ever holds one map. ---------- */
+    function newTrain(){ train = { grp:R.train.grp, nose:R.train.nose, tail:R.train.tail, x:-300, v:0, state:'away', next:22, t:0, braking:false, doors:0, released:false, menu:false }; train.grp.visible = false; return train; }
+    /* ---------- the line. One chunk is on the scene at a time: the station you stand in, or a stretch of tunnel; the renderer keeps the ones you
+       have seen warm off-scene (part 06). What the run remembers about a place (the gates you paid for) is kept out here, so walking back finds it
+       as you left it. A tunnel is walked stretch by stretch with no banner between them, and the Conductor crosses the stretches with you. ---------- */
     function chunkDef(c){ return c.t === 'station' ? STATIONS[c.i] : TUNNEL; }
     function stationName(i){ return STATIONS[((i % STATIONS.length) + STATIONS.length) % STATIONS.length].name; }
     function nextName(){ return stationName(stationIdx + 1); }
     function loadChunk(c, place, ride, quiet){
-      if(chunk && chunk.t === 'station'){ var was = STATIONS[chunk.i].id, keep = {}; Object.keys(doors).forEach(function(k){ keep[k] = 1; }); opened[was] = keep; }
+      var prev = chunk, seam = c.t === 'tunnel' && prev && prev.t === 'tunnel';   /* stretch to stretch: the same dark, no banner, the hunt goes on */
+      if(prev && prev.t === 'station'){ var was = STATIONS[prev.i].id, keep = {}; Object.keys(doors).forEach(function(k){ keep[k] = 1; }); opened[was] = keep; }
+      var carry = seam && conductor && !conductor.dead ? { hp:conductor.hp } : null;   /* the Conductor follows you down the tunnel, wounds and all; he never climbs onto a platform */
       chunk = c; var def = chunkDef(c); if(c.t === 'station'){ stationIdx = c.i; visited[def.id] = 1; }
-      toSpawn += alive; alive = 0; zombies = []; pickups = []; grenades = []; conductor = null; doors = {}; prompt = null; boxRoll = 0; bearT = 0; jumpZ = 0; vz = 0;
-      genMap(def); R.rebuild({ boxHere:c.t === 'station' && boxAt === c.i });
+      genMap(def, c.seg || 0); R.rebuild({ boxHere:c.t === 'station' && boxAt === c.i });   /* the renderer takes the old chunk's bodies off the scene first: it needs the lists to find them */
+      toSpawn += alive - (carry ? 1 : 0); alive = 0; zombies = []; pickups = []; grenades = []; conductor = null; transit = 0; doors = {}; prompt = null; boxRoll = 0; bearT = 0; jumpZ = 0; vz = 0;
       newTrain();
       var pre = opened[def.id]; if(pre) Object.keys(pre).forEach(function(k){ if(isDoor(ch(+k.split(',')[0], +k.split(',')[1]))){ doors[k] = true; R.openDoor(k, true); } });
       if(power) R.powerOn();
-      condT = c.t === 'tunnel' ? 8 : 0; passT = c.t === 'tunnel' ? 16 + Math.random()*12 : 0;
+      if(c.t !== 'tunnel'){ condT = 0; passT = 0; } else if(!seam){ condT = 8; passT = 16 + Math.random()*12; }
       place = place || { x:START.x, y:START.y, a:START.a };
       P.x = place.x; P.y = place.y; if(place.a !== undefined) P.a = place.a;
       if(ride){ train.state = 'coming'; train.x = -105 - train.nose; train.v = 17; train.grp.visible = true; train.doors = 0; P.x = train.x + ride; P.y = TRACK_Z + rnd(-.5, .5); footY = TRAIN_FLOOR; snd.horn(); }
       else footY = floorAt(P.x|0, P.y|0);
+      if(carry) spawnConductor(carry);
       flowKey = ''; spawnT = Math.max(spawnT, .8); regenT = Math.max(regenT, .5);
-      if(!quiet){ banner = (c.t === 'station' ? def.name : 'THE TUNNEL').toUpperCase(); bannerT = 2.6; say(c.t === 'station' ? def.name+'  \u00b7  '+def.sub : 'The tunnel. The train does not stop for you.', 3.2); }
+      if(!quiet && !seam){ banner = (c.t === 'station' ? def.name : 'THE TUNNEL').toUpperCase(); bannerT = 2.6; say(c.t === 'station' ? def.name+'  \u00b7  '+def.sub : 'The tunnel. The train does not stop for you.', 3.2); }
       status();
     }
     /* walking off the end of a platform, or through a tunnel stretch, hands you the next chunk of the loop */
@@ -736,10 +788,11 @@
     function spawnTransit(x, kind){ var hp0 = zombieHp()*1.7, m = makeZombie(0, false, kind), ty = PIT.z1 + 2.3; alive++; transit++;
       var z = { x:x, y:TRACK_Z + 1.2, tx:x, ty:ty, fx:x, fy:TRACK_Z + 1.2, hp:hp0, maxhp:hp0, speed:kind === 'nypd' ? Math.min(3.2, 2.3 + wave*.04) : Math.min(2.2, 1.4 + wave*.05), dmg:kind === 'nypd' ? 30 : 38, brute:false, wraith:false, runner:kind === 'nypd', transit:true, kind:kind, v:0, anim:Math.random()*6, rise:1.3, rise0:1.3, stairs:false, atk:0, cool:0, dead:false, deadT:0, deadT0:2.2, flash:0, m:m, r:m.r, h:m.h, headY:m.headY, fy2:0, face:Math.PI/2, fallDir:1 };
       m.grp.position.set(z.x, z.fy2, z.y); R.scene.add(m.grp); zombies.push(z); }
-    /* the Conductor: he works the tunnels with a lantern, he is faster than you and he does not lose the scent. Put him down and he leaves ammunition. */
-    function spawnConductor(){ if(conductor) return; var m = makeZombie(7, false, 'conductor'), hp0 = 2200 + wave*500, x = clamp(P.x + (P.x < MW/2 ? 1 : -1)*rnd(16, 24), 2.5, MW - 2.5);
-      var z = { x:x, y:TRACK_Z + .5, tx:x, ty:TRACK_Z + .5, fx:x, fy:TRACK_Z + .5, hp:hp0, maxhp:hp0, speed:2.15, dmg:35, brute:false, wraith:false, runner:false, boss:true, kind:'conductor', v:0, anim:0, rise:.8, rise0:.8, stairs:false, atk:0, cool:0, dead:false, deadT:0, deadT0:2.6, flash:0, m:m, r:m.r, h:m.h, headY:m.headY, fy2:PIT_Y, face:0, fallDir:1 };
-      m.grp.position.set(z.x, z.fy2, z.y); R.scene.add(m.grp); zombies.push(z); conductor = z; alive++; snd.wraith(); say('A lantern is coming up the tunnel', 3.4); banner = 'THE CONDUCTOR'; bannerT = 2.6; }
+    /* the Conductor: he works the tunnels with a lantern, he is faster than you and he does not lose the scent. Put him down and he leaves ammunition.
+       The train does not touch him. With carry (from loadChunk) he arrives in the next stretch with the hp he left the last one on, quietly. */
+    function spawnConductor(carry){ if(conductor) return; var m = makeZombie(7, false, 'conductor'), hp0 = carry ? carry.hp : 2200 + wave*500, x = clamp(P.x + (P.x < MW/2 ? 1 : -1)*rnd(16, 24), 2.5, MW - 2.5);
+      var z = { x:x, y:TRACK_Z + .5, tx:x, ty:TRACK_Z + .5, fx:x, fy:TRACK_Z + .5, hp:hp0, maxhp:carry ? 2200 + wave*500 : hp0, speed:2.15, dmg:35, brute:false, wraith:false, runner:false, boss:true, kind:'conductor', v:0, anim:0, rise:.8, rise0:.8, stairs:false, atk:0, cool:0, dead:false, deadT:0, deadT0:2.6, flash:0, m:m, r:m.r, h:m.h, headY:m.headY, fy2:PIT_Y, face:0, fallDir:1 };
+      m.grp.position.set(z.x, z.fy2, z.y); R.scene.add(m.grp); zombies.push(z); conductor = z; alive++; if(carry) return; snd.wraith(); say('A lantern is coming up the tunnel', 3.4); banner = 'THE CONDUCTOR'; bannerT = 2.6; }
     /* the front menu is a security camera on the empty station: the train calls every minute and now and then one of the dead wanders out of a stairwell */
     function enterMenu(){ mode = 'menu'; train.state = 'coming'; train.x = -62 - train.nose; train.v = 17; train.braking = false; train.grp.visible = true; train.menu = true; attract = { z:null, next:4 + Math.random()*4 }; if(R) R.menu(true); api.status('main menu'); }
     function startRun(){ dropAttract(); resetRun(); mode = 'play'; if(R) R.menu(false); snd.ambient(true); }
@@ -776,7 +829,7 @@
     function runs(){ if(lastRun) return lastRun; try { lastRun = JSON.parse(localStorage.getItem('tigos.nightshift.runs') || '{}'); } catch(e){ lastRun = {}; } return lastRun; }
     function killZombie(z, src){ z.dead = true; z.deadT = z.deadT0; z.fallDir = Math.random() < .8 ? 1 : -1; alive--; kills++; hitKill = true;
       if(z.transit) transit = Math.max(0, transit - 1);
-      if(z.boss){ conductor = null; condT = 40; addPoints(500); pickups.push({ x:z.x, y:z.y, kind:'ammo', t:40 }); say('The Conductor is down', 3); banner = 'CONDUCTOR DOWN'; bannerT = 2.4; if(z.m.light) z.m.light.intensity = 0; } R.decal(z.x, z.fy2, z.y, .9 + Math.random()*.6); R.blood(z, 18); if(src !== 'train') snd.kill();
+      if(z.boss){ conductor = null; condT = 40; addPoints(500); pickups.push({ x:z.x, y:z.y, kind:'ammo', t:40 }); say('The Conductor is down', 3); banner = 'CONDUCTOR DOWN'; bannerT = 2.4; } R.decal(z.x, z.fy2, z.y, .9 + Math.random()*.6); R.blood(z, 18); if(src !== 'train') snd.kill();
       if(special && toSpawn <= 0 && alive <= 0){ pickups.push({ x:z.x, y:z.y, kind:'ammo', t:40 }); say('The last wraith left something behind', 2.5); snd.pickup(); }
       else if(Math.random() < .035 && pickups.length < 2) pickups.push({ x:z.x, y:z.y, kind:['ammo','2x','insta','nuke'][(Math.random()*4)|0], t:22 }); status(); }
     function damage(z, d, hs, src){ if(z.dead || z.rise > .6) return false; if(puInsta > 0 && !z.boss) d = 1e9; z.hp -= d; z.flash = .08; hitM = .14; hitKill = false; if(hs) heads++; addPoints(hs ? 20 : 10); R.blood(z, hs ? 9 : 5);   /* a headshot is worth double, on the hit and on the kill */
@@ -832,7 +885,7 @@
        away. Stay aboard when the doors close and it takes you down the line to the next platform. In a tunnel it does not stop for anyone: a horn,
        a headlight and then the wall. Anything on the track in front of it is gone, and the maintenance walkways are the only safe ground. */
     function trainCrush(tr){ if(tr.v <= 1.5) return; var x0 = tr.x + tr.tail - .5, x1 = tr.x + tr.nose + 1.2;
-      zombies.forEach(function(z){ if(!z.dead && Math.abs(z.y - TRACK_Z) < 2.1 && z.x > x0 && z.x < x1 && ch(z.x|0, z.y|0) !== 'W'){ addPoints(50); killZombie(z, 'train'); z.fallDir = 1; } });
+      zombies.forEach(function(z){ if(!z.dead && !z.boss && Math.abs(z.y - TRACK_Z) < 2.1 && z.x > x0 && z.x < x1 && ch(z.x|0, z.y|0) !== 'W'){ addPoints(50); killZombie(z, 'train'); z.fallDir = 1; } });
       if(!over && !riding && Math.abs(P.y - TRACK_Z) < 2.1 && P.x > x0 && P.x < x1 && ch(P.x|0, P.y|0) !== 'W' && floorAt(P.x|0, P.y|0) < -.5) hurt(1000, 'Struck by the train'); }
     function board(){ riding = 1; rideOff = P.x - train.x; rode++; snd.chime(); banner = 'NEXT STOP'; bannerT = 2.6; say('Next stop '+nextName(), 3.4); api.status('riding to '+nextName()); }
     function updateTrain(dt){ var tr = train; if(!tr) return; var inTunnel = chunk && chunk.t === 'tunnel', stopAt = STATION.x1 - 1.5;
@@ -862,7 +915,7 @@
     function ambientTick(dt){ flickT -= dt; if(flickT <= 0){ flick = flick ? 0 : 1; flickT = flick ? rnd(.04, .16) : rnd(2.5, 9); if(!flick && Math.random() < .3) flickTube = null; }   /* the lights in this place are not well */
       dripT -= dt; if(dripT <= 0){ dripT = rnd(3, 9); snd.drip(); } }
     g.update = function(dt){
-      if(mode === 'menu'){ t += dt; ambientTick(dt); updateTrain(dt); updateAttract(dt); return; }
+      if(mode === 'menu'){ t += dt; ambientTick(dt); updateTrain(dt); updateAttract(dt); prewarmT -= dt; if(prewarmT <= 0 && (t > 7 || MODEL_KEYS.every(function(k){ return MODELS[k] || MODELS.failed[k]; }))){ prewarmT = .7; if(!R.prewarm() && !actorsWarm){ actorsWarm = true; R.warmActors(); } } return; }   /* the menu is when the other chunks get built and their shaders compiled: once the models are in (or have failed), or seven seconds in regardless */
       t += dt; fade += (fadeTo - fade)*Math.min(1, dt*2.6);
       if(dying > 0){ dying -= dt; shake = Math.max(shake, dying*.25); if(dying <= 0 && !ended) showEnd(); return; }
       if(ended){ endT -= dt; if(endT <= 0) backToMenu(); return; } fogK += ((special ? .45 : chunk && chunk.t === 'tunnel' ? .62 : 1) - fogK) * Math.min(1, dt*1.5); fireT -= dt; grenT -= dt; meleeT -= dt; melee = Math.max(0, melee - dt*3); flash = Math.max(0, flash - dt); hitM = Math.max(0, hitM - dt); dmgFlash = Math.max(0, dmgFlash - dt); whiteFlash = Math.max(0, whiteFlash - dt); shake = Math.max(0, shake - dt*2.5); recoil = Math.max(0, recoil - dt*6); bannerT -= dt; msgT -= dt; puX2 = Math.max(0, puX2 - dt); puInsta = Math.max(0, puInsta - dt);
@@ -926,22 +979,48 @@
       if(/[?&]gl=1/.test(location.search)) soft = false;
       var scene = new THREE.Scene(); scene.background = new THREE.Color(0x04050a); scene.fog = new THREE.FogExp2(0x04050a, .042);
       var camera = new THREE.PerspectiveCamera(SET.fov, 16/9, .04, 200); camera.rotation.order = 'YXZ'; scene.add(camera); var handL = new THREE.PointLight(0xfff0dd, 1.1, 1.3, 1); handL.position.set(.1, .18, -.1); camera.add(handL);   /* a faint fill so the gun reads in a dark station */
-      var world = buildWorld(scene, { boxHere:true }); chunk = { t:'station', i:0 };
+      /* the world cache: every chunk built once and kept off-scene between visits (see part 02). The train and the conductor's lantern light are
+         scene-level, and a pool of dark pad lights keeps the visible point-light count fixed per graphics tier, so no chunk swap, train arrival or
+         boss spawn ever changes the light count and makes Three.js recompile the shaders: that recompile was the lag. */
+      var TR = buildTrain(scene), cache = {}, pads = [], lanternL = new THREE.PointLight(0xffb050, 0, 9, 1); scene.add(lanternL);
+      for(var pi = 0; pi < 28; pi++){ var pd = new THREE.PointLight(0xffffff, 0, .01, 1); pd.visible = false; scene.add(pd); pads.push(pd); }
+      var chunkKey = function(c){ return c.t === 'station' ? 'station:'+c.i : 'tunnel:'+(c.seg || 0); };
+      var getWorld = function(key, opts){ var w = cache[key]; if(!w){ var t0 = performance.now(); w = buildWorld(scene, opts); w.key = key; w.buildMs = performance.now() - t0; cache[key] = w; } w.attach(MACHINES, opts); return w; };
+      var world = getWorld('station:0', { boxHere:true }); chunk = { t:'station', i:0 };
       var composer = new THREE.EffectComposer(renderer); composer.addPass(new THREE.RenderPass(scene, camera)); var bloom = new THREE.UnrealBloomPass(new THREE.Vector2(320, 180), .22, .3, 1.05);   /* only what is brighter than white glows: tubes, lamps, eyes, panels */ composer.addPass(bloom); composer.addPass(new THREE.OutputPass());
       var blood = Particles(scene, 320, .075, A.tex.soft), sparks = Particles(scene, 160, .045, A.tex.soft), tracers = Beams(scene, 12, M.tracer, .014), beams = Beams(scene, 8, M.beam, .05), decals = Decals(scene, 48, M.blood), grenGeo = new THREE.SphereGeometry(.07, 10, 8);
       for(var fl = 0; fl < 3; fl++){ var L = new THREE.PointLight(0xffb060, 0, 14, 1); scene.add(L); flashLights.push({ l:L, t:0 }); }
       var puGeo = new THREE.SphereGeometry(.16, 14, 10), puTex = {}; Object.keys(PU_DEF).forEach(function(k){ var c = mk(128, 32); text(c.getContext('2d'), PU_DEF[k].label, 64, 16, 22, PU_DEF[k].col, 'center', 900); var tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; puTex[k] = tx; });
       function applyGfx(){ var tier = soft ? 'low' : SET.gfx, dpr = window.devicePixelRatio || 1, pr = soft ? .3 : { low:.55, medium:.8, high:Math.min(1.5, dpr), ultra:Math.min(2, dpr) }[tier]; renderer.setPixelRatio(pr); composer.setPixelRatio(pr);
-        bloom.enabled = tier !== 'low' || /[?&]gl=1/.test(location.search); bloom.strength = tier === 'ultra' ? .28 : .22; var nl = { low:8, medium:12, high:17, ultra:99 }[tier]; world.lights.forEach(function(o, i){ o.l.visible = i < nl; }); if(vw > 2) R.resize(vw, vh); }
-      R = { scene:scene, camera:camera, renderer:renderer, world:world, fresh:true, soft:function(){ return soft; }, bloom:bloom,
+        bloom.enabled = tier !== 'low' || /[?&]gl=1/.test(location.search); bloom.strength = tier === 'ultra' ? .28 : .22; applyLights(); if(vw > 2) R.resize(vw, vh); }
+      /* the tier's light budget, exactly: the chunk's brightest lights up to the budget, dark pads for the rest (a tunnel has nine lights, a station near thirty) */
+      function applyLights(){ var tier = soft ? 'low' : SET.gfx, nl = { low:8, medium:12, high:17, ultra:28 }[tier], n = 0; world.lights.forEach(function(o, i){ o.l.visible = i < nl; if(o.l.visible) n++; }); pads.forEach(function(pd, i){ pd.visible = i < nl - n; }); }
+      R = { scene:scene, camera:camera, renderer:renderer, world:world, train:TR, fresh:true, soft:function(){ return soft; }, bloom:bloom, cache:cache,
         resize:function(w, h){ vw = w; vh = h; renderer.setSize(w, h, false); composer.setSize(w, h); camera.aspect = w/h; camera.updateProjectionMatrix(); },
         applySettings:function(){ camera.fov = SET.fov; camera.updateProjectionMatrix(); applyGfx(); snd.volume(SET.vol); },
         reset:function(){ clearActors(); decals.clear(); paintWorld(); scene.fog.density = .042; fadeEl && (fadeEl.style.opacity = 0); R.endCard(null); },
-        /* down the line: throw this chunk away and build the next one. The viewmodel lives on the camera and the particle pools are scene-wide,
-           so only the world group and the box's spinning display guns go; one map is in memory at a time. */
-        rebuild:function(opts){ clearActors(); decals.clear();
-          Object.keys(boxGuns).forEach(function(k){ scene.remove(boxGuns[k].grp); boxGuns[k].dispose(); delete boxGuns[k]; });
-          world.destroy(); world = buildWorld(scene, opts || {}); R.world = world; applyGfx(); paintWorld(); forgeT = 0; vendT = {}; powerSweep = power ? 99 : 0; return world; },
+        /* down the line: this chunk steps off the scene and the next steps on, built now if it is the first visit and otherwise straight from the cache.
+           The viewmodel lives on the camera and the particle pools, the train and the box's display guns are scene-wide, so nothing else moves. */
+        rebuild:function(opts){ clearActors(); decals.clear(); Object.keys(boxGuns).forEach(function(k){ boxGuns[k].grp.visible = false; });
+          world.detach(); world = getWorld(chunkKey(chunk), opts || {}); R.world = world; applyLights(); paintWorld(); forgeT = 0; vendT = {}; powerSweep = power ? 99 : 0; return world; },
+        /* while the menu is up: build the chunks not yet seen, one a call, and have their shaders compiled in the background so the first walk down the line
+           costs nothing. The map globals are the current chunk's again before this returns. */
+        prewarm:function(){ var keys = ['station:1', 'station:2', 'station:3', 'tunnel:0', 'tunnel:1'].filter(function(k){ return !cache[k]; }); if(!keys.length) return null;
+          var k = keys[0], parts = k.split(':'), cur = CUR, curSeg = CUR.seg || 0, here = !!(BOXM && BOXM.here);
+          if(parts[0] === 'station') genMap(STATIONS[+parts[1]]); else genMap(TUNNEL, +parts[1]);
+          var t0 = performance.now(), w = buildWorld(scene, { boxHere:false }); w.key = k; w.buildMs = performance.now() - t0; cache[k] = w;
+          world.detach(); var keep = world; world = w; applyLights(); compileScene();   /* the light count is the tier's, so the programs it makes are the ones the visit will use */
+          w.detach(); world = keep; genMap(cur, curSeg); world.attach(MACHINES, { boxHere:here }); applyLights(); w.textures.forEach(function(tx){ try { renderer.initTexture(tx); } catch(e){} }); return k; },   /* and its canvases go up to the GPU now, not on the first frame there */
+        /* a model landed after worlds were built: those worlds hold stand-ins, so they go, and the one on the scene is rebuilt in place with the run's gates and power */
+        invalidate:function(){ Object.keys(cache).forEach(function(k){ if(cache[k] !== world){ cache[k].destroy(); delete cache[k]; } }); var old = world; delete cache[old.key]; old.destroy();
+          world = getWorld(chunkKey(chunk), { boxHere:!!(BOXM && BOXM.here) }); R.world = world; applyLights(); paintWorld(); Object.keys(doors || {}).forEach(function(k){ R.openDoor(k, true); }); if(power) R.powerOn(); return Object.keys(cache); },
+        /* one body of every kind of the dead, a pickup and its label, put on the scene for a moment so their programs compile and their skins upload before the
+           first one ever spawns. Runs again when a model lands, since the Blender bodies carry their own materials. */
+        warmActors:function(){ var tmp = new THREE.Group(), bodies = []; ['walker', 'runner', 'brute', 'mta', 'nypd', 'conductor', 'wraith'].forEach(function(k){ try { var m = makeZombie(0, false, k); bodies.push(m); tmp.add(m.grp); } catch(e){} });
+          var pm = new THREE.Mesh(puGeo, new THREE.MeshStandardMaterial({ color:0xffffff, emissive:0xffffff, emissiveIntensity:1 })), sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:puTex.ammo, transparent:true, depthWrite:false })); tmp.add(pm); tmp.add(sp);
+          tmp.position.set(0, -50, 0); scene.add(tmp); compileScene();
+          ztex().forEach(function(tx){ ['skin', 'cloth', 'pants'].forEach(function(n){ try { renderer.initTexture(tx[n]); } catch(e){} }); }); Object.keys(puTex).forEach(function(k){ try { renderer.initTexture(puTex[k]); } catch(e){} });
+          scene.remove(tmp); bodies.forEach(function(m){ m.mats.forEach(function(mt){ mt.dispose(); }); }); pm.material.dispose(); sp.material.dispose(); return bodies.length; },
         gunFor:function(w){ if(gun){ camera.remove(gun.grp); gun.dispose(); } gun = makeGun(w.id, w.up); gunW = w; gun.grp.rotation.set(0, Math.PI/2 + .1, 0); gun.grp.scale.setScalar(gun.glb ? (gun.mz.x > .42 ? .54 : .62) : .5); camera.add(gun.grp); },
         gunGlb:function(){ return !!(gun && gun.glb); },
         blood:function(z, n){ for(var i = 0; i < n; i++) blood.add(z.x, z.fy2 + z.h*.55 + rnd(-.2, .3), z.y, rnd(-1.6, 1.6), rnd(.3, 2.4), rnd(-1.6, 1.6), rnd(.35, .8), Math.random() < .3 ? '#5a0606' : '#8a0a0a'); },
@@ -963,19 +1042,20 @@
         frame:function(dt){
           var eye = footY + jumpZ + EYE + (Math.abs(Math.sin(bob))*.045), sk = shake*.035;
           if(mode === 'menu'){   /* the security camera: high in the west corner of the platform, a slow pan across the platform and the tracks, a little roll */
-            camera.position.set(STATION.x0 + .9, CEIL_HI - .25, STATION.z1 - .8); tmpV.set(30 + Math.sin(t*.13)*7, .4, 7.2); camera.lookAt(tmpV); camera.rotation.z += .035; if(gun) gun.grp.visible = false; }
+            camera.position.set(STATION.x0 + .9, CEIL_HI - .25, STATION.z1 - .8); tmpV.set(30 + Math.sin(t*.13)*7, .4, 7.2); camera.lookAt(tmpV); camera.rotation.z += .035; gunPark(); }
           else if(dying > 0 || ended){ var dk = clamp(1 - dying/2.6, 0, 1), ez = 1 - Math.pow(1 - dk, 3);   /* the fall: down to the tile, a roll, and it stays there while the shift is read back */
-            camera.position.set(P.x, footY + EYE - ez*(EYE - .26), P.y); camera.rotation.set(-.2 - ez*.55, Math.atan2(-Math.cos(P.a), -Math.sin(P.a)) + ez*.3, ez*1.2); if(gun) gun.grp.visible = false; }
-          else { var rs = riding ? 1 : 0; camera.position.set(P.x + rnd(-1, 1)*sk + rs*Math.sin(t*5.7)*.012, eye + rnd(-1, 1)*sk + rs*Math.sin(t*8.3)*.014, P.y + rnd(-1, 1)*sk + rs*Math.sin(t*4.1)*.01); camera.rotation.set(P.p + rnd(-1, 1)*sk*.5, Math.atan2(-Math.cos(P.a), -Math.sin(P.a)), Math.sin(bob)*.006 + rnd(-1, 1)*sk*.3 + rs*Math.sin(t*3.3)*.01); if(gun) gun.grp.visible = forgeT <= 0; }
+            camera.position.set(P.x, footY + EYE - ez*(EYE - .26), P.y); camera.rotation.set(-.2 - ez*.55, Math.atan2(-Math.cos(P.a), -Math.sin(P.a)) + ez*.3, ez*1.2); gunPark(); }
+          else { var rs = riding ? 1 : 0; camera.position.set(P.x + rnd(-1, 1)*sk + rs*Math.sin(t*5.7)*.012, eye + rnd(-1, 1)*sk + rs*Math.sin(t*8.3)*.014, P.y + rnd(-1, 1)*sk + rs*Math.sin(t*4.1)*.01); camera.rotation.set(P.p + rnd(-1, 1)*sk*.5, Math.atan2(-Math.cos(P.a), -Math.sin(P.a)), Math.sin(bob)*.006 + rnd(-1, 1)*sk*.3 + rs*Math.sin(t*3.3)*.01); if(forgeT > 0) gunPark(); }
           /* the gun: bob, recoil, reload dip, swap slide, melee shove */
-          if(gun && mode !== 'menu'){ var rp = reloading ? Math.sin((1 - reloadT/stat(gunW).reload) * Math.PI) : 0, sw = swapT > 0 ? Math.sin(Math.PI*swapT/.34) : 0;
+          if(gun && mode !== 'menu' && !(dying > 0 || ended || forgeT > 0)){ var rp = reloading ? Math.sin((1 - reloadT/stat(gunW).reload) * Math.PI) : 0, sw = swapT > 0 ? Math.sin(Math.PI*swapT/.34) : 0;
             var big = gun.glb ? clamp((gun.mz.x - .34)*.6, 0, .12) : 0;   /* the long guns sit further out and lower so they do not fill the frame */
             gun.grp.position.set((gun.glb ? .17 : .2) + big*.3 + Math.sin(bob)*.01 - melee*.1, (gun.glb ? -.15 : -.17) - big*.6 + Math.abs(Math.cos(bob))*.008 - rp*.2 - sw*.4 - recoil*.01, (gun.glb ? -.33 : -.36) - big + recoil*.06 - melee*.18);
             gun.grp.rotation.set(recoil*.09 - rp*.7 - melee*.4, Math.PI/2 + .1 + rp*.3, -rp*.35 + melee*.5);
             if(gun.spin) gun.spin.rotation.x += dt*spinUp*40;
             var on = flash > 0 && !reloading; gun.flash.forEach(function(f){ f.visible = on; if(on){ f.rotation.x = Math.random()*6.28; var s = .7 + Math.random()*.7; f.scale.set(s, s, 1); } }); gun.light.intensity = on ? 3.5 : 0; }
           /* the dead */
-          zombies.forEach(function(z){ z.m.grp.position.set(z.x, z.fy2 + (z.climb || 0), z.y); z.m.grp.rotation.y = z.face; animZombie(z, dt, t); if(z.m.light) z.m.light.intensity = z.dead ? Math.max(0, z.deadT/z.deadT0)*1.4 : 1.5 + Math.sin(t*9 + z.x)*.5; });
+          zombies.forEach(function(z){ z.m.grp.position.set(z.x, z.fy2 + (z.climb || 0), z.y); z.m.grp.rotation.y = z.face; animZombie(z, dt, t); });
+          var cz = conductor && !conductor.dead ? conductor : null; if(cz && cz.m.lantern){ cz.m.lantern.getWorldPosition(tmpV); lanternL.position.copy(tmpV); lanternL.intensity = 1.5 + Math.sin(t*9)*.5; } else lanternL.intensity = Math.max(0, lanternL.intensity - dt*3);   /* the one lantern light in the scene rides with the Conductor */
           if(attract && attract.z){ var az = attract.z; az.m.grp.position.set(az.x, az.fy2, az.y); az.m.grp.rotation.y = az.face; animZombie(az, dt, t); }
           /* grenades, pickups */
           grenades.forEach(function(gr){ gr.m.position.set(gr.x, gr.z, gr.y); gr.m.rotation.x += dt*6; });
@@ -1003,7 +1083,7 @@
           /* the power: the lever comes over and a surge runs down the tubes */
           if(powerSweep < 1.2){ powerSweep += dt*.5; if(world.power && world.power.lever) world.power.lever.rotation.x = .9 - 1.8*Math.min(1, powerSweep*3.5); }
           if(chunk && chunk.t === 'tunnel') world.signals.forEach(function(sg){ var on = Math.sin(t*2.2 + sg.ph*2.1) > -.35; sg.m.emissiveIntensity = on ? 2.5 : .2; sg.l.intensity = on ? 1.6 : .15; });
-          var wt = world.train; if(wt){ var dk2 = train ? train.doors : 0; wt.doors.forEach(function(dr){ dr.position.x = dr.userData.x0 + dr.userData.side*dk2*.72; }); var cab = riding ? 1 : (train && train.doors > .05 ? train.doors : 0); wt.cabin.intensity = cab*.55; wt.carLights.forEach(function(cl){ cl.intensity = cab*1.5; }); if(train) wt.cabin.position.x = clamp(P.x - train.x, 0, wt.nose); }   /* the car light follows you down the consist */
+          var wt = TR; if(wt){ wt.lights.position.x = train ? train.x : -200; var dk2 = train ? train.doors : 0; wt.doors.forEach(function(dr){ dr.position.x = dr.userData.x0 + dr.userData.side*dk2*.72; }); var cab = riding ? 1 : (train && train.doors > .05 ? train.doors : 0); wt.cabin.intensity = cab*.55; wt.carLights.forEach(function(cl){ cl.intensity = cab*1.5; }); if(train) wt.cabin.position.x = clamp(P.x - train.x, 0, wt.nose); }   /* the car light follows you down the consist */
           if(fadeEl) fadeEl.style.opacity = fade;
           /* lights: one tube stutters, the work lamps breathe, explosions fade */
           if(!flickTube && world.tubes.length){ var lit = world.tubes.filter(function(o){ return o.light; }); flickTube = lit[(Math.random()*lit.length)|0]; }
@@ -1011,7 +1091,7 @@
           (world.work || []).forEach(function(w){ w.l.intensity = w.base*(.9 + .08*Math.sin(t*23) + rnd(-.03, .03)); });
           flashLights.forEach(function(f){ if(f.t > 0){ f.t -= dt; f.l.intensity = Math.max(0, f.t)*14; } });
           if(gun) gun.light.intensity = flash > 0 && !reloading ? 3.5 : 0;
-          world.train.hlight.intensity = train && train.grp.visible ? 9 : 0;
+          TR.hlight.intensity = train && train.grp.visible ? 9 : 0;
           /* fog thickens and cools when the wraiths come */
           var fd = mode === 'menu' ? .021 : .042/fogK; scene.fog.density += (fd - scene.fog.density)*Math.min(1, dt*2); scene.fog.color.setHex(0x04050a).lerp(new THREE.Color(0x1a2238), 1 - fogK); scene.background.copy(scene.fog.color);
           blood.update(dt, floorAt2); sparks.update(dt, floorAt2); tracers.update(dt); beams.update(dt);
@@ -1020,9 +1100,13 @@
         },
         beamsLive:function(){ return beams.list.length; },
         endCard:function(st){ endCard(st); },
-        menu:function(on){ api.canvas.classList.toggle('cctv', on); if(hudEl) hudEl.hidden = true; if(menuEl){ menuEl.hidden = !on; if(on) showPanel('main'); } if(gun) gun.grp.visible = !on; },
-        dispose:function(){ if(gun){ camera.remove(gun.grp); gun.dispose(); } Object.keys(boxGuns).forEach(function(k){ boxGuns[k].dispose(); }); blood.dispose(); sparks.dispose(); tracers.dispose(); beams.dispose(); decals.dispose(); grenGeo.dispose(); puGeo.dispose(); world.dispose.forEach(function(o){ if(o.dispose) o.dispose(); }); scene.traverse(function(o){ if(o.geometry && o.geometry.dispose) o.geometry.dispose(); }); composer.dispose(); renderer.dispose(); try { renderer.forceContextLoss(); } catch(e){} } };
+        menu:function(on){ api.canvas.classList.toggle('cctv', on); if(hudEl) hudEl.hidden = true; if(menuEl){ menuEl.hidden = !on; if(on) showPanel('main'); } },
+        dispose:function(){ if(gun){ camera.remove(gun.grp); gun.dispose(); } Object.keys(boxGuns).forEach(function(k){ boxGuns[k].dispose(); }); blood.dispose(); sparks.dispose(); tracers.dispose(); beams.dispose(); decals.dispose(); grenGeo.dispose(); puGeo.dispose(); Object.keys(cache).forEach(function(k){ cache[k].destroy(); }); TR.dispose(); scene.traverse(function(o){ if(o.geometry && o.geometry.dispose) o.geometry.dispose(); }); composer.dispose(); renderer.dispose(); try { renderer.forceContextLoss(); } catch(e){} } };
       function floorAt2(x, z){ return floorAt(x|0, z|0); }
+      /* shaders are keyed by the render target they draw into: the game draws through the bloom composer's buffer, so compile with that bound or the
+         programs made here are the wrong variant and the first real frame compiles them all again */
+      function compileScene(){ try { renderer.setRenderTarget(bloom.enabled ? composer.readBuffer : null); if(renderer.compileAsync) renderer.compileAsync(scene, camera).catch(function(){}); else renderer.compile(scene, camera); } catch(e){} finally { try { renderer.setRenderTarget(null); } catch(e2){} } }
+      function gunPark(){ if(gun){ gun.grp.position.set(0, -4, 2); gun.flash.forEach(function(f){ f.visible = false; }); gun.light.intensity = 0; } }   /* out of frame behind the camera, never invisible: its two lights stay in the count */
       function clearActors(){ (zombies || []).forEach(function(z){ scene.remove(z.m.grp); z.m.mats.forEach(function(m){ m.dispose(); }); }); (grenades || []).forEach(function(gr){ scene.remove(gr.m); }); (pickups || []).forEach(function(p){ R.pickupGone(p); }); }
       function setPanel(m, on){ if(m.panel && m.panel.material) m.panel.material.emissiveIntensity = on ? 1.4 : .05; if(m.mouth) m.mouth.material.emissiveIntensity = on ? 2.6 : .25; (m.glowMats || []).forEach(function(mt){ mt.emissiveIntensity = on ? (mt.userData.base || 1.6) : .12; }); }
       function setPower(on){ if(!world.power) return; var lm = world.power.lamp && world.power.lamp.material; if(lm){ lm.emissive.setHex(on ? 0x30ff60 : 0xff2020); lm.color.setHex(on ? 0x40ff70 : 0xff3030); } if(world.power.lever) world.power.lever.rotation.x = on ? -.9 : .9; }
@@ -1130,16 +1214,17 @@
     api.stage.addEventListener('input', onSet); api.stage.addEventListener('change', onSet);
     var wheelT = 0, onWheel = function(e){ if(mode !== 'play' || over) return; e.preventDefault(); var now = Date.now(); if(now - wheelT < 160 || Math.abs(e.deltaY) < 1) return; wheelT = now; swapTo(1 - slot); };   /* two guns, so any notch flips to the other one */
     api.stage.addEventListener('wheel', onWheel, { passive:false });
-    var onModel = function(k, sc){ if(k === 'train' && R && R.world && R.world.setTrain) R.world.setTrain(sc); }; MODELS.listeners.push(onModel);
+    var onModel = function(k, sc){ if(!R) return; if(k === 'train') R.train.setModel(sc); if(k === 'zombie' || k === 'wraith') R.warmActors(); if(k === 'props') R.invalidate(); }; MODELS.listeners.push(onModel);
     g.destroy = function(){ try { if(document.pointerLockElement) document.exitPointerLock(); } catch(e){} var li = MODELS.listeners.indexOf(onModel); if(li >= 0) MODELS.listeners.splice(li, 1); api.stage.removeEventListener('input', onSet); api.stage.removeEventListener('change', onSet); api.stage.removeEventListener('wheel', onWheel); if(hudEl && hudEl.parentNode) hudEl.parentNode.removeChild(hudEl); if(menuEl && menuEl.parentNode) menuEl.parentNode.removeChild(menuEl); [fadeEl, endEl].forEach(function(el){ if(el && el.parentNode) el.parentNode.removeChild(el); }); dropAttract(); snd.close(); if(R) R.dispose(); R = null; };
     /* ---------- what the tests read ---------- */
     function gunScreen(){ if(!gun || !R) return null; var v = gun.grp.localToWorld(tmpV.copy(gun.grip)).project(R.camera), ax = (v.x + 1)/2*vw, ay = (1 - v.y)/2*vh; v = gun.grp.localToWorld(tmpV.copy(gun.mz)).project(R.camera); return { ax:ax, ay:ay, mx:(v.x + 1)/2*vw, my:(1 - v.y)/2*vh, W:vw, H:vh }; }
     g.peek = function(){ return { station:chunk && chunk.t === 'station' ? STATIONS[chunk.i].id : null, stationName:CUR ? CUR.name : null, chunk:chunk ? (chunk.t === 'station' ? 'station:'+chunk.i : 'tunnel:'+chunk.from+':'+chunk.seg) : null, tunnel:!!(CUR && CUR.tunnel), visited:Object.keys(visited).length,
       riding:riding, onTrain:mode === 'play' ? onTrain() : false, doorsOpen:train ? +train.doors.toFixed(2) : 0, transit:transit, conductor:conductor ? { x:+conductor.x.toFixed(1), hp:conductor.hp } : null, fade:+fade.toFixed(2), rode:rode, walked:walked,
       boxAt:boxAt, boxHere:!!(BOXM && BOXM.here), boxUses:boxUses[CUR ? CUR.id : ''] || 0, boxPool:boxSpin ? boxSpin.length : 0, bear:+bearT.toFixed(2), dying:+dying.toFixed(2), ended:ended, end:stats, heads:heads, spinUp:+spinUp.toFixed(2), weaponIds:Object.keys(WEAPONS).length,
-      special:special, fogK:+fogK.toFixed(2), wave:wave, kills:kills, points:points, total:total, hp:hp, alive:alive, toSpawn:toSpawn, zombies:zombies.length, weapon:stat(cur()).name, mag:cur().mag, res:cur().res, doors:Object.keys(doors).length, power:power, perks:Object.keys(perks), x:P.x, y:P.y, a:P.a, pitch:P.p, footY:+footY.toFixed(2), over:over, overMsg:overMsg, between:+between.toFixed(2), reloading:reloading, swap:+swapT.toFixed(3), boxRoll:+boxRoll.toFixed(2), boxName:boxName, prompt:prompt ? prompt.txt : null, promptCost:prompt ? prompt.cost : null, dmg:stat(cur()).dmg, beams:R ? R.beamsLive() : 0, gun:gunScreen(), gren:gren, puX2:+puX2.toFixed(1), puInsta:+puInsta.toFixed(1), soft:R ? R.soft() : null, bloom:R ? R.bloom.enabled : null, lights:R ? R.world.lights.filter(function(o){ return o.l.visible; }).length : 0, gfx:SET.gfx, fov:SET.fov, sens:SET.sens, train:train ? { state:train.state, x:+train.x.toFixed(1), v:+train.v.toFixed(2), nose:+(train.x + train.nose).toFixed(1), visible:train.grp.visible, next:+train.next.toFixed(1) } : null, banner:bannerT > 0 ? banner : '', gates:R ? Object.keys(R.world.doors).filter(function(k){ return R.world.doors[k].grp.visible; }).length : 0, hud:hudEl ? !hudEl.hidden : false, models:{ wraith:!!MODELS.wraith, train:!!MODELS.train, zombie:!!MODELS.zombie, guns:!!MODELS.guns, props:!!MODELS.props, trainLive:!!(R && R.world.train.model), gunGlb:!!(R && R.gunGlb()), failed:MODELS.failed }, mode:mode, menu:menuEl ? { open:!menuEl.hidden, panel:menuPanel, sel:menuSel, item:menuItems()[menuSel] ? menuItems()[menuSel].getAttribute('data-act') : null, clock:menuEl.querySelector('[data-clock]').textContent, attract:attract && attract.z ? { x:+attract.z.x.toFixed(2), y:+attract.z.y.toFixed(2), phase:attract.z.phase } : null, cctv:api.canvas.classList.contains('cctv') } : null, jump:+jumpZ.toFixed(2), vz:+vz.toFixed(2), slot:slot, weapons:weapons.map(function(w){ return stat(w).name; }), photo:A.photo, inv:!!SET.inv,
+      special:special, fogK:+fogK.toFixed(2), wave:wave, kills:kills, points:points, total:total, hp:hp, alive:alive, toSpawn:toSpawn, zombies:zombies.length, weapon:stat(cur()).name, mag:cur().mag, res:cur().res, doors:Object.keys(doors).length, power:power, perks:Object.keys(perks), x:P.x, y:P.y, a:P.a, pitch:P.p, footY:+footY.toFixed(2), over:over, overMsg:overMsg, between:+between.toFixed(2), reloading:reloading, swap:+swapT.toFixed(3), boxRoll:+boxRoll.toFixed(2), boxName:boxName, prompt:prompt ? prompt.txt : null, promptCost:prompt ? prompt.cost : null, dmg:stat(cur()).dmg, beams:R ? R.beamsLive() : 0, gun:gunScreen(), gren:gren, puX2:+puX2.toFixed(1), puInsta:+puInsta.toFixed(1), soft:R ? R.soft() : null, bloom:R ? R.bloom.enabled : null, lights:R ? R.world.lights.filter(function(o){ return o.l.visible; }).length : 0, gfx:SET.gfx, fov:SET.fov, sens:SET.sens, train:train ? { state:train.state, x:+train.x.toFixed(1), v:+train.v.toFixed(2), nose:+(train.x + train.nose).toFixed(1), visible:train.grp.visible, next:+train.next.toFixed(1) } : null, banner:bannerT > 0 ? banner : '', gates:R ? Object.keys(R.world.doors).filter(function(k){ return R.world.doors[k].grp.visible; }).length : 0, hud:hudEl ? !hudEl.hidden : false, models:{ wraith:!!MODELS.wraith, train:!!MODELS.train, zombie:!!MODELS.zombie, guns:!!MODELS.guns, props:!!MODELS.props, trainLive:!!(R && R.train.model), gunGlb:!!(R && R.gunGlb()), failed:MODELS.failed }, mode:mode, menu:menuEl ? { open:!menuEl.hidden, panel:menuPanel, sel:menuSel, item:menuItems()[menuSel] ? menuItems()[menuSel].getAttribute('data-act') : null, clock:menuEl.querySelector('[data-clock]').textContent, attract:attract && attract.z ? { x:+attract.z.x.toFixed(2), y:+attract.z.y.toFixed(2), phase:attract.z.phase } : null, cctv:api.canvas.classList.contains('cctv') } : null, jump:+jumpZ.toFixed(2), vz:+vz.toFixed(2), slot:slot, weapons:weapons.map(function(w){ return stat(w).name; }), photo:A.photo, inv:!!SET.inv,
       list:zombies.map(function(z){ return { x:z.x, y:z.y, hp:z.hp, dead:z.dead, rise:z.rise, brute:z.brute, wraith:z.wraith, runner:z.runner, atk:z.atk, fy:+z.fy2.toFixed(2), glb:!!z.m.glb, kind:z.kind || null, human:!!z.m.human }; }) }; };
-    g.dbg = { locate:function(){ return LOCATE; }, tick:function(sec){ var n = Math.round((sec || 1)*60); for(var i = 0; i < n; i++) g.update(1/60); return t; }, station:function(i){ loadChunk({ t:'station', i:((i % STATIONS.length) + STATIONS.length) % STATIONS.length }, null, 0, true); return CUR.id; },
+    g.dbg = { locate:function(){ return LOCATE; }, trainInfo:function(){ var n = 0; R.train.lights.traverse(function(o){ if(o.isPointLight) n++; }); return { stand:R.train.stand.visible, inner:R.train.inner.visible, carLights:R.train.carLights.length, lightsInGroup:n, model:R.train.model, parent:R.train.grp.parent === R.scene }; },
+      renderer:function(){ return R.renderer; }, world:function(){ return R.world; }, sceneLights:function(){ var n = 0; R.scene.traverseVisible(function(o){ if(o.isLight) n++; }); return n; }, cached:function(){ return Object.keys(R.cache).sort(); }, prewarm:function(){ return R.prewarm(); }, invalidate:function(){ return R.invalidate(); }, warmActors:function(){ return R.warmActors(); }, gpu:function(){ var r = R.renderer; return { programs:r.info.programs.length, textures:r.info.memory.textures, geometries:r.info.memory.geometries }; }, buildTime:function(){ var o = {}; Object.keys(R.cache).forEach(function(k){ o[k] = +R.cache[k].buildMs.toFixed(1); }); return o; }, tick:function(sec){ var n = Math.round((sec || 1)*60); for(var i = 0; i < n; i++) g.update(1/60); return t; }, station:function(i){ loadChunk({ t:'station', i:((i % STATIONS.length) + STATIONS.length) % STATIONS.length }, null, 0, true); return CUR.id; },
       tunnel:function(k, from){ loadChunk({ t:'tunnel', from:from === undefined ? stationIdx : from, seg:k || 0 }, { x:MW/2, y:TRACK_Z + .5 }, 0, true); return CUR.id; },
       stations:function(){ return STATIONS.map(function(d){ return d.id; }); }, ride:function(){ if(!train) return null; train.grp.visible = true; train.state = 'stopped'; train.x = STATION.x1 - 1.5 - train.nose; train.v = 0; train.doors = 1; train.t = 2; train.released = true; train.closed = false; P.x = train.x + train.nose*.5; P.y = TRACK_Z; footY = TRAIN_FLOOR; return { x:+P.x.toFixed(1), aboard:onTrain() }; },
       board:function(){ board(); return riding; }, arrive:function(){ if(riding === 1){ riding = 2; fade = 1; fadeTo = 1; } return riding; },
