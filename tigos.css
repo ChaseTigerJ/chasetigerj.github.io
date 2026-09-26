@@ -1256,9 +1256,9 @@ html, body { margin:0 !important; padding:0 !important; height:100%; overflow:hi
 .ns-hint { left:0; right:0; bottom:60px; text-align:center; font-size:12px; color:rgba(255,255,255,.55); transition:opacity .5s; }
 .win.fs .ns-bl, .win.fs .ns-br { bottom:calc(18px + env(safe-area-inset-bottom, 0px)); }
 /* front menu over the security-camera feed */
-.gm-cv.fill.cctv { filter:grayscale(.7) sepia(.35) hue-rotate(58deg) saturate(1.15) contrast(1.18) brightness(.92); }
+.gm-cv.fill.cctv.css-grade { filter:grayscale(.7) sepia(.35) hue-rotate(58deg) saturate(1.15) contrast(1.18) brightness(.92); }
 .ns-menu { position:absolute; inset:0; font-family:-apple-system, BlinkMacSystemFont, Inter, "Segoe UI", Roboto, sans-serif; color:#f4f1ea; user-select:none; overflow:hidden; display:flex; align-items:stretch; }
-.ns-menu[hidden] { display:none; }
+.ns-menu[hidden] { display:none; } .ns-menu.gl-grade .ns-scan { display:none; }   /* the grade and the scanlines are drawn by the renderer's output pass when it runs; this CSS is the fallback */
 .ns-menu::before { content:""; position:absolute; inset:0; background:linear-gradient(90deg, rgba(4,5,10,.92) 0, rgba(4,5,10,.82) 34%, rgba(4,5,10,.25) 62%, rgba(4,5,10,.15) 100%); pointer-events:none; }
 .ns-cctv { position:absolute; inset:0; pointer-events:none; font-family:ui-monospace, Menlo, Consolas, monospace; font-size:12px; letter-spacing:.08em; color:rgba(230,240,225,.85); text-shadow:0 0 6px rgba(120,255,160,.35), 0 1px 1px rgba(0,0,0,.9); }
 .ns-scan { position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px); mix-blend-mode:multiply; opacity:.9; animation:nsScan 8s linear infinite; }
