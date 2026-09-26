@@ -237,42 +237,76 @@ window.TIG_GAMES = (function(){
   }
 
 /* tigOS arcade games.js, part 07: mines. The parts in this folder are concatenated in name order by build.py, so they share one scope. */
-  /* ---------- Mines ---------- */
+  /* ---------- Mines: levels of 30, 60, 90 ... mines on a board that grows with them, three lives, red flags and yellow maybes ---------- */
   function mines(api){
-    var COLS = 16, ROWS = 12, CELL = 28, MX = 16, MY = 48, MINES = 30, g = {}, cells, placed, cur, state, t0, elapsed, flags, revealed, pressT, pressCell;
-    var NUMCOL = ['', '#8cc7ff', '#28c840', '#ff5f57', '#a78bfa', '#ff8a00', '#63e6be', '#f4f1ea', '#ffd166'];
+    var W = api.W, H = api.H, MY = 48, PAD = 16, g = {}, COLS, ROWS, CELL, MX, MINES, cells, placed, cur, state, t0, elapsed, flags, maybes, blown, revealed, pressT, pressCell, level, lives, score, t, shake, parts, msg, msgT, endT, cursorT;
+    var NUMCOL = ['', '#8cc7ff', '#28c840', '#ff5f57', '#a78bfa', '#ff8a00', '#63e6be', '#f4f1ea', '#ffd166'], LIVES = 3;
+    var sfx = window.TIG_SFX, snd = { dig:function(){ sfx.tone('square', 420, 300, .05, .08); }, pop:function(n){ sfx.tone('triangle', 500 + n*40, 700 + n*40, .04, .05); }, flag:function(){ sfx.tone('square', 660, 880, .06, .1); }, maybe:function(){ sfx.tone('triangle', 520, 520, .08, .09); }, boom:function(){ sfx.noise(.4, 300, .8, 1); sfx.tone('sawtooth', 120, 30, .5, .3); }, dead:function(){ sfx.noise(.7, 200, .9, 1); sfx.tone('sawtooth', 90, 20, .9, .35); }, win:function(){ [523, 659, 784, 1046].forEach(function(f, i){ sfx.tone('triangle', f, f, .16, .18, i*.09); }); }, level:function(){ [392, 523, 659, 784, 1046, 1318].forEach(function(f, i){ sfx.tone('triangle', f, f, .14, .18, i*.08); }); } };
+    function dims(L){ return { cols:16 + 4*(L - 1), rows:12 + 3*(L - 1), mines:30*L }; }   /* 16x12/30, 20x15/60, 24x18/90, 28x21/120 ... about a fifth of the board is mined from level 2 on */
     function idx(x, y){ return y*COLS + x; }
     function around(i, fn){ var x = i % COLS, y = (i / COLS)|0; for(var dy = -1; dy <= 1; dy++) for(var dx = -1; dx <= 1; dx++){ if(!dx && !dy) continue; var nx = x + dx, ny = y + dy; if(nx >= 0 && ny >= 0 && nx < COLS && ny < ROWS) fn(idx(nx, ny)); } }
-    g.reset = function(){ cells = []; for(var i = 0; i < COLS*ROWS; i++) cells.push({ m:false, n:0, open:false, flag:false }); placed = false; cur = idx(8, 6); state = 'play'; t0 = 0; elapsed = 0; flags = 0; revealed = 0; pressT = 0; pressCell = -1; api.score(0); api.status(MINES+' mines  ·  '+(api.touch ? 'tap to dig, hold to flag' : 'click digs, right click flags')); };
+    function board(L){ var d = dims(L); COLS = d.cols; ROWS = d.rows; MINES = d.mines; CELL = Math.floor(Math.min((W - PAD*2)/COLS, (H - MY - 14)/ROWS)); MX = Math.round((W - COLS*CELL)/2);
+      cells = []; for(var i = 0; i < COLS*ROWS; i++) cells.push({ m:false, n:0, open:false, flag:0, a:0, d:0, fa:0, blown:false }); placed = false; cur = idx(COLS >> 1, ROWS >> 1); t0 = 0; elapsed = 0; flags = 0; maybes = 0; blown = 0; revealed = 0; pressT = 0; pressCell = -1; parts = []; shake = 0; endT = 0; }
+    function status(){ api.status(left()+' mines  \u00b7  '+lives+(lives === 1 ? ' life' : ' lives')+'  \u00b7  level '+level+(api.touch ? '  \u00b7  tap digs, hold flags' : '')); }
+    function left(){ return MINES - flags - blown; }
+    g.reset = function(){ level = 1; lives = LIVES; score = 0; t = 0; msg = ''; msgT = 0; cursorT = 0; state = 'play'; board(1); api.score(0); status(); flash('level 1  \u00b7  30 mines', 2); };
     function place(first){ var safe = {}; safe[first] = 1; around(first, function(j){ safe[j] = 1; }); var n = 0; while(n < MINES){ var i = ri(0, cells.length - 1); if(safe[i] || cells[i].m) continue; cells[i].m = true; n++; } cells.forEach(function(c, i){ around(i, function(j){ if(cells[j].m) c.n++; }); }); placed = true; t0 = Date.now(); }
-    function reveal(i){ var c = cells[i]; if(c.open || c.flag || state !== 'play') return; if(!placed) place(i);
-      if(c.m){ c.open = true; state = 'lost'; cells.forEach(function(k){ if(k.m) k.open = true; }); api.status('boom  ·  '+revealed+' safe cells cleared'); api.over('Boom, that was a mine'); return; }
-      var stack = [i]; while(stack.length){ var j = stack.pop(), k = cells[j]; if(k.open || k.flag) continue; k.open = true; revealed++; if(k.n === 0) around(j, function(q){ if(!cells[q].open) stack.push(q); }); }
-      api.score(revealed);
-      if(revealed === COLS*ROWS - MINES){ state = 'won'; elapsed = (Date.now() - t0)/1000; api.status('cleared in '+elapsed.toFixed(1)+'s'); api.score(revealed + Math.max(0, Math.round(300 - elapsed))); api.over('Field cleared in '+elapsed.toFixed(1)+'s'); } }
-    function chord(i){ var c = cells[i]; if(!c.open || !c.n) return; var f = 0; around(i, function(j){ if(cells[j].flag) f++; }); if(f === c.n) around(i, function(j){ if(!cells[j].flag) reveal(j); }); }
-    function flag(i){ var c = cells[i]; if(c.open || state !== 'play') return; c.flag = !c.flag; flags += c.flag ? 1 : -1; api.status((MINES - flags)+' mines left'); }
+    function burst(x, y, n, col, sp){ for(var i = 0; i < n; i++){ var a = rnd(0, Math.PI*2), v = rnd(sp*.3, sp); parts.push({ x:x, y:y, vx:Math.cos(a)*v, vy:Math.sin(a)*v - sp*.3, l:rnd(.5, 1.1), t:0, col:col, r:rnd(2, 4.5) }); } }
+    function cx(i){ return MX + (i % COLS)*CELL + CELL/2; } function cy(i){ return MY + ((i / COLS)|0)*CELL + CELL/2; }
+    function blow(i){ var c = cells[i]; c.open = true; c.blown = true; c.a = .001; blown++; lives--; shake = 1; snd.boom(); burst(cx(i), cy(i), 26, '#ff5f57', 260); burst(cx(i), cy(i), 12, '#ffd166', 180); if(c.flag){ if(c.flag === 1) flags--; else maybes--; c.flag = 0; }
+      if(lives <= 0){ state = 'lost'; cells.forEach(function(k, j){ if(k.m && !k.open){ k.open = true; k.a = .001; k.d = rnd(.05, .6); } }); snd.dead(); api.status('boom  \u00b7  '+revealed+' safe cells cleared on level '+level); api.over('Out of lives on level '+level+', '+left()+' mines still buried'); return; }
+      flash(lives === 1 ? 'boom!  last life' : 'boom!  '+lives+' lives left', 1.6); status(); }
+    function reveal(i){ var c = cells[i]; if(c.open || c.flag === 1 || state !== 'play') return; if(!placed) place(i);
+      if(c.m){ blow(i); return; }
+      /* flood fill with a wave: each cell opens a beat after the one it was reached from, so a big clear ripples outward */
+      var stack = [[i, 0]], n = 0; while(stack.length){ var s = stack.shift(), j = s[0], k = cells[j]; if(k.open || k.flag === 1) continue; k.open = true; k.a = .001; k.d = s[1]; if(k.flag === 2){ k.flag = 0; maybes--; } revealed++; n++; if(k.n === 0) around(j, function(q){ if(!cells[q].open) stack.push([q, s[1] + .035]); }); }
+      snd.dig(); if(n > 4) snd.pop(Math.min(n, 8)); score += n; api.score(score);
+      if(revealed === COLS*ROWS - MINES){ state = 'won'; elapsed = (Date.now() - t0)/1000; var bonus = Math.max(0, Math.round(300 - elapsed))*level; score += bonus; api.score(score); endT = 2.4; snd.win(); flash('cleared in '+elapsed.toFixed(1)+'s  +'+bonus, 2.4); api.status('level '+level+' cleared in '+elapsed.toFixed(1)+'s'); cells.forEach(function(k, j){ if(k.m){ k.flag = 1; k.fa = .001; k.d = ((j % COLS) + ((j / COLS)|0))*.03; } }); for(var b = 0; b < 6; b++) burst(rnd(MX, MX + COLS*CELL), rnd(MY, MY + ROWS*CELL), 10, ['#28c840', '#ffd166', '#8cc7ff', '#ff8a00'][b % 4], 200); } }
+    function nextLevel(){ level++; lives = LIVES; state = 'play'; board(level); flash('level '+level+'  \u00b7  '+MINES+' mines', 2.2); snd.level(); status(); }
+    function chord(i){ var c = cells[i]; if(!c.open || !c.n) return; var f = 0; around(i, function(j){ if(cells[j].flag === 1) f++; }); if(f === c.n) around(i, function(j){ if(cells[j].flag !== 1) reveal(j); }); }
+    function flag(i){ var c = cells[i]; if(c.open || state !== 'play') return; if(c.flag === 0){ c.flag = 1; flags++; snd.flag(); } else if(c.flag === 1){ c.flag = 2; flags--; maybes++; snd.maybe(); } else { c.flag = 0; maybes--; } c.fa = .001; status(); }   /* none -> red flag -> yellow maybe -> none */
     function act(i){ if(cells[i].open) chord(i); else reveal(i); }
-    g.key = function(k, down){ if(!down || state !== 'play') return false; var d = isDir(k), x = cur % COLS, y = (cur / COLS)|0;
-      if(d){ x = clamp(x + (d === 'L' ? -1 : d === 'R' ? 1 : 0), 0, COLS - 1); y = clamp(y + (d === 'U' ? -1 : d === 'D' ? 1 : 0), 0, ROWS - 1); cur = idx(x, y); return true; }
+    function flash(s, d){ msg = s; msgT = d || 1.4; }
+    g.key = function(k, down){ if(!down) return false; if(state === 'won') return false; if(state !== 'play') return false; var d = isDir(k), x = cur % COLS, y = (cur / COLS)|0;
+      if(d){ x = clamp(x + (d === 'L' ? -1 : d === 'R' ? 1 : 0), 0, COLS - 1); y = clamp(y + (d === 'U' ? -1 : d === 'D' ? 1 : 0), 0, ROWS - 1); cur = idx(x, y); cursorT = 0; return true; }
       if(k === ' ' || k === 'Enter'){ act(cur); return true; } if(k === 'f' || k === 'F'){ flag(cur); return true; } return false; };
-    function at(x, y){ var cx = Math.floor((x - MX) / CELL), cy = Math.floor((y - MY) / CELL); return cx >= 0 && cy >= 0 && cx < COLS && cy < ROWS ? idx(cx, cy) : -1; }
+    function at(x, y){ var cxx = Math.floor((x - MX) / CELL), cyy = Math.floor((y - MY) / CELL); return cxx >= 0 && cyy >= 0 && cxx < COLS && cyy < ROWS ? idx(cxx, cyy) : -1; }
     g.pointer = function(type, x, y, e){ var i = at(x, y); if(state !== 'play') return;
-      if(type === 'down'){ pressCell = i; pressT = Date.now(); if(i > -1) cur = i; if(e && (e.button === 2 || e.ctrlKey || e.metaKey)){ if(i > -1) flag(i); pressCell = -1; } return; }
+      if(type === 'down'){ pressCell = i; pressT = Date.now(); if(i > -1){ cur = i; cursorT = 0; } if(e && (e.button === 2 || e.ctrlKey || e.metaKey)){ if(i > -1) flag(i); pressCell = -1; } return; }
       if(type === 'up'){ if(pressCell > -1 && i === pressCell){ if(Date.now() - pressT > 380) flag(i); else act(i); } pressCell = -1; } };
-    g.update = function(){ if(state === 'play' && placed) elapsed = (Date.now() - t0)/1000; };
+    g.peek = function(){ return { level:level, lives:lives, mines:MINES, left:left(), flags:flags, maybes:maybes, blown:blown, revealed:revealed, state:state, cols:COLS, rows:ROWS, cell:CELL, score:score, placed:placed, cur:cur, shake:+shake.toFixed(2), parts:parts.length, msg:msgT > 0 ? msg : '', endT:+endT.toFixed(2), flagAt:cells[cur].flag, opening:cells.filter(function(c){ return c.a > 0 && c.a < 1; }).length }; };
+    g.dbg = { safe:function(){ if(!placed) place(cur); for(var i = 0; i < cells.length; i++) if(!cells[i].m && !cells[i].open && cells[i].n > 0) return i; return -1; }, mine:function(){ if(!placed) place(cur); for(var i = 0; i < cells.length; i++) if(cells[i].m && !cells[i].open) return i; return -1; }, reveal:function(i){ reveal(i); }, flag:function(i){ flag(i); }, cell:function(i){ var c = cells[i]; return { m:c.m, n:c.n, open:c.open, flag:c.flag, blown:c.blown }; },
+      clear:function(){ if(!placed) place(cur); for(var i = 0; i < cells.length; i++) if(!cells[i].m && !cells[i].open) reveal(i); }, tick:function(sec){ var n = Math.round((sec || 1)*60); for(var i = 0; i < n; i++) g.update(1/60); }, dims:dims };
+    g.update = function(dt){ t += dt; if(state === 'play' && placed) elapsed = (Date.now() - t0)/1000; msgT = Math.max(0, msgT - dt); cursorT += dt; shake = Math.max(0, shake - dt*2.4);
+      for(var i = 0; i < cells.length; i++){ var c = cells[i]; if(c.a > 0 && c.a < 1){ if(c.d > 0) c.d -= dt; else c.a = Math.min(1, c.a + dt*4.5); } if(c.fa > 0 && c.fa < 1) c.fa = Math.min(1, c.fa + dt*5); }
+      for(var p = parts.length - 1; p >= 0; p--){ var q = parts[p]; q.t += dt; q.x += q.vx*dt; q.y += q.vy*dt; q.vy += 520*dt; q.vx *= (1 - dt*1.5); if(q.t > q.l) parts.splice(p, 1); }
+      if(state === 'won' && endT > 0){ endT -= dt; if(endT <= 0) nextLevel(); } };
+    function ease(k){ return 1 - (1 - k)*(1 - k)*(1 - k); }
+    function drawFlag(c, x, y, s, kind, k){ var pop = k < 1 ? 1 + Math.sin(k*Math.PI)*.35 : 1; c.save(); c.translate(x, y); c.scale(s*pop, s*pop); c.fillStyle = kind === 1 ? '#ff5f57' : '#ffd166'; c.beginPath(); c.moveTo(-3, -8); c.lineTo(7, -3); c.lineTo(-3, 2); c.closePath(); c.fill(); c.fillStyle = '#f4f1ea'; c.fillRect(-4, -8, 2, 15); if(kind === 2){ c.fillStyle = '#1a1208'; c.font = '800 8px '+FONT; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('?', 1.5, -3); } c.restore(); }
     g.draw = function(c){
-      bg(c, api.W, api.H, '#15161d', '#0a0a0e');
-      text(c, (MINES - flags)+' mines', MX, 24, 14, '#ff5f57', 'left', 700); text(c, elapsed.toFixed(0)+'s', api.W - MX, 24, 14, 'rgba(255,255,255,.7)', 'right', 700); text(c, state === 'won' ? 'cleared' : state === 'lost' ? 'boom' : 'tigOS mines', api.W/2, 24, 13, 'rgba(255,255,255,.45)', 'center');
-      cells.forEach(function(k, i){ var x = MX + (i % COLS)*CELL, y = MY + ((i / COLS)|0)*CELL;
-        if(k.open){ c.fillStyle = k.m ? (state === 'lost' ? '#5a1d1d' : '#2a2a34') : 'rgba(255,255,255,.06)'; rr(c, x + 1, y + 1, CELL - 2, CELL - 2, 4); c.fill(); if(k.m){ c.fillStyle = '#f4f1ea'; c.beginPath(); c.arc(x + CELL/2, y + CELL/2, 6, 0, 7); c.fill(); } else if(k.n) text(c, String(k.n), x + CELL/2, y + CELL/2 + 1, 15, NUMCOL[k.n], 'center', 800); }
-        else { var gr = c.createLinearGradient(x, y, x, y + CELL); gr.addColorStop(0, '#3d3e4c'); gr.addColorStop(1, '#2a2b36'); c.fillStyle = gr; rr(c, x + 1, y + 1, CELL - 2, CELL - 2, 4); c.fill(); c.fillStyle = 'rgba(255,255,255,.12)'; rr(c, x + 3, y + 3, CELL - 6, 5, 2); c.fill();
-          if(k.flag){ c.fillStyle = '#ff5f57'; c.beginPath(); c.moveTo(x + 10, y + 7); c.lineTo(x + 20, y + 12); c.lineTo(x + 10, y + 17); c.closePath(); c.fill(); c.fillStyle = '#f4f1ea'; c.fillRect(x + 9, y + 7, 2, 14); } }
-        if(i === cur && !api.touch){ c.strokeStyle = '#ff8a00'; c.lineWidth = 2; rr(c, x + 1.5, y + 1.5, CELL - 3, CELL - 3, 4); c.stroke(); } });
+      bg(c, W, H, '#15161d', '#0a0a0e');
+      c.save(); if(shake > 0){ var sh = shake*shake*6; c.translate(rnd(-sh, sh), rnd(-sh, sh)); }
+      text(c, left()+' mines', PAD, 24, 14, '#ff5f57', 'left', 700); text(c, elapsed.toFixed(0)+'s', W - PAD, 24, 14, 'rgba(255,255,255,.7)', 'right', 700);
+      text(c, 'level '+level, W/2, 18, 12, 'rgba(255,255,255,.55)', 'center', 700);
+      for(var l = 0; l < LIVES; l++){ var lx = W/2 - 22 + l*22, on = l < lives; c.fillStyle = on ? '#ff5f57' : 'rgba(255,255,255,.14)'; c.beginPath(); c.moveTo(lx, 36); c.bezierCurveTo(lx - 7, 30, lx - 7, 25, lx, 28); c.bezierCurveTo(lx + 7, 25, lx + 7, 30, lx, 36); c.fill(); }
+      var fs = Math.max(10, Math.round(CELL*.55)), r = Math.max(2, CELL*.14);
+      for(var i = 0; i < cells.length; i++){ var k = cells[i], x = MX + (i % COLS)*CELL, y = MY + ((i / COLS)|0)*CELL;
+        if(k.open){ var ka = k.a >= 1 ? 1 : k.a <= 0 ? 0 : ease(k.a), sc = k.blown ? 1 : .6 + .4*ka;
+          if(ka < 1){ c.fillStyle = 'rgba(255,255,255,.05)'; rr(c, x + 1, y + 1, CELL - 2, CELL - 2, r); c.fill(); }   /* the lid still drawn while the cell pops open */
+          if(ka <= 0) continue; c.save(); c.translate(x + CELL/2, y + CELL/2); c.scale(sc, sc); c.globalAlpha = ka;
+          c.fillStyle = k.blown ? '#5a1d1d' : k.m ? '#2a2a34' : 'rgba(255,255,255,.06)'; rr(c, -CELL/2 + 1, -CELL/2 + 1, CELL - 2, CELL - 2, r); c.fill();
+          if(k.m){ c.fillStyle = k.blown ? '#ff5f57' : '#f4f1ea'; c.beginPath(); c.arc(0, 0, CELL*.22, 0, 7); c.fill(); c.strokeStyle = c.fillStyle; c.lineWidth = Math.max(1.5, CELL*.07); for(var sp = 0; sp < 4; sp++){ var an = sp*Math.PI/4; c.beginPath(); c.moveTo(Math.cos(an)*CELL*.3, Math.sin(an)*CELL*.3); c.lineTo(-Math.cos(an)*CELL*.3, -Math.sin(an)*CELL*.3); c.stroke(); } if(k.blown){ c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 2; c.beginPath(); c.moveTo(-CELL*.3, -CELL*.3); c.lineTo(CELL*.3, CELL*.3); c.moveTo(CELL*.3, -CELL*.3); c.lineTo(-CELL*.3, CELL*.3); c.stroke(); } }
+          else if(k.n) text(c, String(k.n), 0, 1, fs, NUMCOL[k.n], 'center', 800);
+          c.restore(); }
+        else { var gr = c.createLinearGradient(x, y, x, y + CELL); gr.addColorStop(0, '#3d3e4c'); gr.addColorStop(1, '#2a2b36'); c.fillStyle = gr; rr(c, x + 1, y + 1, CELL - 2, CELL - 2, r); c.fill(); c.fillStyle = 'rgba(255,255,255,.12)'; rr(c, x + 3, y + 3, CELL - 6, Math.max(2, CELL*.18), 2); c.fill();
+          if(k.flag) drawFlag(c, x + CELL/2, y + CELL/2 + 1, CELL/24, k.flag, k.fa); }
+        if(i === cur && !api.touch && state === 'play'){ c.strokeStyle = 'rgba(255,138,0,'+(.65 + Math.sin(cursorT*6)*.35)+')'; c.lineWidth = 2; rr(c, x + 1.5, y + 1.5, CELL - 3, CELL - 3, r); c.stroke(); } }
+      for(var p = 0; p < parts.length; p++){ var q = parts[p]; c.globalAlpha = Math.max(0, 1 - q.t/q.l); c.fillStyle = q.col; c.beginPath(); c.arc(q.x, q.y, q.r*(1 - q.t/q.l*.5), 0, 7); c.fill(); } c.globalAlpha = 1;
+      c.restore();
+      if(msgT > 0){ var ma = Math.min(1, msgT*3), my = MY + ROWS*CELL/2; c.fillStyle = 'rgba(10,10,14,'+(.72*ma)+')'; rr(c, W/2 - 150, my - 22, 300, 44, 12); c.fill(); c.globalAlpha = ma; text(c, msg, W/2, my, 17, state === 'won' ? '#28c840' : /boom/.test(msg) ? '#ff5f57' : '#ffd166', 'center', 800); c.globalAlpha = 1; }
     };
     return g;
   }
-
 /* tigOS arcade games.js, part 08: paddle. The parts in this folder are concatenated in name order by build.py, so they share one scope. */
   /* ---------- Paddle (pong vs cpu) ---------- */
   function paddle(api){
@@ -399,131 +433,169 @@ window.TIG_GAMES = (function(){
   }
 
 /* tigOS arcade games.js, part 12: hopper. The parts in this folder are concatenated in name order by build.py, so they share one scope. */
-  /* ---------- Hopper (frogger) ---------- */
+  /* ---------- Hopper (frogger): one frog has to make it home each level, every level a new theme, faster traffic, fewer open bays, diving turtles, then crocodiles ---------- */
   function hopper(api){
-    var W = api.W, H = api.H, g = {}, CS = 40, COLS = W / CS, PLAY = 13 * CS, HOMES = [1, 3, 5, 7, 9], HOP = .11, TIME = 30;
+    var W = api.W, H = api.H, g = {}, CS = 40, COLS = W / CS, PLAY = 13 * CS, HOMES = [1, 3, 5, 7, 9], HOP = .11;
+    /* seven themes, one per level (then round again): colours, a name, whether it is night (headlights glow), and the decoration the banks and sky get */
+    var THEMES = [
+      { name:'the meadow', water:'#123a73', road:'#1e1f26', bank:'#1d4a2a', side:'#4a2d7a', deco:'flowers', log:'#8a5a2b' },
+      { name:'sunset highway', water:'#2b3f8a', road:'#26202a', bank:'#5a3a1a', side:'#7a3a2a', deco:'sun', log:'#7a4a22' },
+      { name:'night city', water:'#0a1a3a', road:'#101018', bank:'#12281a', side:'#24243a', deco:'stars', night:true, log:'#5a3a1e' },
+      { name:'the swamp', water:'#1f4a2a', road:'#2a2a1e', bank:'#2f4a17', side:'#4a3a2a', deco:'reeds', log:'#6a4a24', croc:true },
+      { name:'frozen lake', water:'#8fc4e8', road:'#2a2e3a', bank:'#dfe8f2', side:'#b8c8d8', deco:'snow', log:'#9a6a3a', ice:true },
+      { name:'the desert', water:'#2a6a8a', road:'#3a2a1a', bank:'#c8a060', side:'#a07a40', deco:'cactus', log:'#8a5a2b' },
+      { name:'neon strip', water:'#1a0a3a', road:'#0a0a12', bank:'#2a0a4a', side:'#3a0a5a', deco:'neon', night:true, log:'#5a3a5a' } ];
+    function themeOf(L){ return THEMES[(L - 1) % THEMES.length]; }
+    function baysOf(L){ return Math.max(1, 5 - Math.floor((L - 1) * .8)); }   /* 5, 5, 4, 3, 2, 1 open bays */
+    function timeOf(L){ return Math.max(14, 30 - (L - 1) * 2); }
     /* every level gets a fresh layout: lane kinds, directions, speeds and spacing are rolled here; each level rolls faster and tighter */
-    var THEMES = [{ water:'#123a73', road:'#1e1f26', bank:'#1d4a2a', side:'#4a2d7a' }, { water:'#0f4d5c', road:'#23232a', bank:'#2f5d1f', side:'#6b3a2a' }, { water:'#2b2f7a', road:'#1c2230', bank:'#4a3c17', side:'#2a4a6b' }, { water:'#0c3d3a', road:'#2a1e2e', bank:'#1d4a2a', side:'#7a3a5a' }, { water:'#3a1f6e', road:'#1a1a1a', bank:'#3d5a1d', side:'#3a6b7a' }];
     function genLanes(level){
-      var out = [], dir = Math.random() < .5 ? 1 : -1, turtles = 0, k = 1 + (level - 1)*.12;
-      for(var row = 1; row <= 5; row++){ var turtle = (row === 5 && !turtles) || (Math.random() < .4 && turtles < 2); if(turtle) turtles++; var len = turtle ? ri(2, 3) : ri(3, 6); out.push({ row:row, dir:dir, sp:rnd(55, 95)*k + (row === 3 ? 20 : 0), len:len, gap:Math.max(70, rnd(100, 190) - (level - 1)*8), kind:turtle ? 'turtle' : 'log' }); dir = -dir; }
+      var out = [], dir = Math.random() < .5 ? 1 : -1, turtles = 0, k = 1 + (level - 1)*.16, th = themeOf(level);
+      for(var row = 1; row <= 5; row++){ var turtle = (row === 5 && !turtles) || (Math.random() < .4 && turtles < 2); if(turtle) turtles++; var croc = !turtle && (th.croc || level >= 6) && Math.random() < .5; var len = turtle ? ri(2, 3) : croc ? 3 : ri(3, 6); out.push({ row:row, dir:dir, sp:rnd(55, 95)*k + (row === 3 ? 20 : 0), len:len, gap:Math.max(66, rnd(100, 190) - (level - 1)*10), kind:turtle ? 'turtle' : croc ? 'croc' : 'log' }); dir = -dir; }
+      if(th.croc && !out.some(function(L){ return L.kind === 'croc'; })){ var lg = out.filter(function(L){ return L.kind === 'log'; })[0]; if(lg){ lg.kind = 'croc'; lg.len = 3; } }   /* the swamp always has at least one crocodile */
       var kinds = ['truck', 'race', 'car', 'dozer', 'car']; for(var i = kinds.length - 1; i > 0; i--){ var j = ri(0, i), tmp = kinds[i]; kinds[i] = kinds[j]; kinds[j] = tmp; }
-      for(var r = 7; r <= 11; r++){ var kind = kinds[r - 7], sp = kind === 'race' ? rnd(170, 210) : kind === 'truck' ? rnd(100, 130) : kind === 'dozer' ? rnd(65, 85) : rnd(85, 125); out.push({ row:r, dir:dir, sp:sp*k, len:kind === 'truck' ? 2 : 1, gap:Math.max(80, (kind === 'race' ? rnd(240, 300) : rnd(120, 200)) - (level - 1)*10), kind:kind }); dir = -dir; }
+      for(var r = 7; r <= 11; r++){ var kind = kinds[r - 7], sp = kind === 'race' ? rnd(170, 210) : kind === 'truck' ? rnd(100, 130) : kind === 'dozer' ? rnd(65, 85) : rnd(85, 125); out.push({ row:r, dir:dir, sp:sp*k, len:kind === 'truck' ? 2 : 1, gap:Math.max(76, (kind === 'race' ? rnd(240, 300) : rnd(120, 200)) - (level - 1)*12), kind:kind }); dir = -dir; }
       return out; }
     var LANES = genLanes(1), theme = THEMES[0];
-    var sfx = window.TIG_SFX, snd = { hop:function(){ sfx.tone('square', 520, 780, .07, .12); }, splash:function(){ sfx.noise(.35, 700, .5, 1); sfx.tone('sine', 300, 80, .3, .2); }, squash:function(){ sfx.noise(.18, 260, .7, 1); sfx.tone('sawtooth', 160, 40, .22, .25); }, hedge:function(){ sfx.tone('square', 240, 120, .2, .15); }, time:function(){ sfx.tone('sawtooth', 220, 60, .5, .2); }, home:function(){ [523, 659, 784].forEach(function(f, i){ sfx.tone('triangle', f, f, .14, .18, i*.08); }); }, level:function(){ [523, 659, 784, 1046, 784, 1046].forEach(function(f, i){ sfx.tone('triangle', f, f, .16, .2, i*.1); }); } };
-    var lanes, frog, homes, lives, level, score, time, t, over, flies, bestRow, msg, msgT;
+    var sfx = window.TIG_SFX, snd = { hop:function(){ sfx.tone('square', 520, 780, .07, .12); }, splash:function(){ sfx.noise(.35, 700, .5, 1); sfx.tone('sine', 300, 80, .3, .2); }, squash:function(){ sfx.noise(.18, 260, .7, 1); sfx.tone('sawtooth', 160, 40, .22, .25); }, croc:function(){ sfx.noise(.12, 400, .6, 1); sfx.tone('sawtooth', 200, 60, .3, .25); }, hedge:function(){ sfx.tone('square', 240, 120, .2, .15); }, time:function(){ sfx.tone('sawtooth', 220, 60, .5, .2); }, home:function(){ [523, 659, 784].forEach(function(f, i){ sfx.tone('triangle', f, f, .14, .18, i*.08); }); }, level:function(){ [523, 659, 784, 1046, 784, 1046].forEach(function(f, i){ sfx.tone('triangle', f, f, .16, .2, i*.1); }); } };
+    var lanes, frog, bays, lives, level, score, time, TIME, t, over, bestRow, msg, msgT, banner, parts, deco, lifeLost, stars;
     var rowY = function(r){ return r * CS + CS / 2; };
-    var mult = function(){ return 1; };   /* speed lives in genLanes now, rolled per level */
-    function buildLanes(){ LANES = genLanes(level); theme = THEMES[(level - 1) % THEMES.length]; lanes = LANES.map(function(L, i){ var w = L.len * CS, P = w + L.gap; return { row:L.row, dir:L.dir, sp:L.sp, w:w, P:P, len:L.len, kind:L.kind, off:rnd(0, P), n:Math.ceil((W + P) / P) + 1, phase:rnd(0, 6), idx:i }; }); }
-    g.reset = function(){
-      lanes = LANES.map(function(L, i){ var w = L.len * CS, P = w + L.gap; return { row:L.row, dir:L.dir, sp:L.sp, w:w, P:P, len:L.len, kind:L.kind, off:rnd(0, P), n:Math.ceil((W + P) / P) + 1, phase:rnd(0, 6), idx:i }; });
-      homes = [false, false, false, false, false]; lives = 3; level = 1; score = 0; t = 0; over = false; msg = ''; msgT = 0; buildLanes();
-      api.score(0); spawn(); api.status(api.touch ? 'swipe or tap a side to hop  ·  level 1' : 'arrows hop  ·  level 1');
-    };
-    function spawn(){ frog = { x:W / 2, row:12, hop:0, fx:0, fr:12, tx:W / 2, tr:12, dead:0, kind:'' }; time = TIME; bestRow = 12; }
+    function buildLanes(){ LANES = genLanes(level); theme = themeOf(level); TIME = timeOf(level); lanes = LANES.map(function(L, i){ var w = L.len * CS, P = w + L.gap; return { row:L.row, dir:L.dir, sp:L.sp, w:w, P:P, len:L.len, kind:L.kind, off:rnd(0, P), n:Math.ceil((W + P) / P) + 1, phase:rnd(0, 6), idx:i }; });
+      var open = HOMES.slice(); for(var i = open.length - 1; i > 0; i--){ var j = ri(0, i), tmp = open[i]; open[i] = open[j]; open[j] = tmp; } open = open.slice(0, baysOf(level)); bays = HOMES.map(function(hc){ return open.indexOf(hc) >= 0; });
+      deco = []; for(var d = 0; d < 40; d++) deco.push({ x:rnd(0, W), y:rnd(0, PLAY), s:rnd(.5, 1.5), ph:rnd(0, 7), v:rnd(20, 60) }); }
+    g.reset = function(){ lives = 3; level = 1; score = 0; t = 0; over = false; msg = ''; msgT = 0; banner = 0; parts = []; lifeLost = 0; stars = 0; buildLanes(); api.score(0); spawn(); showBanner(); api.status(api.touch ? 'swipe or tap a side to hop  \u00b7  level 1  \u00b7  '+theme.name : 'arrows hop  \u00b7  level 1  \u00b7  '+theme.name); };
+    function showBanner(){ banner = 2.2; }
+    function spawn(){ frog = { x:W / 2, row:12, hop:0, fx:0, fr:12, tx:W / 2, tr:12, dead:0, kind:'', face:'U', idle:0, tongue:0 }; time = TIME; bestRow = 12; }
     function objX(L, i){ return -L.P + L.off + i * L.P; }
-    function submerged(L){ return L.kind === 'turtle' && (level >= 3 || (level === 2 && L.idx === 1)) && ((L.phase % 6) > 4.4); }
-    function turtleAlpha(L){ if(L.kind !== 'turtle' || !(level >= 3 || (level === 2 && L.idx === 1))) return 1; var p = L.phase % 6; if(p < 3.8) return 1; if(p < 4.4) return 1 - (p - 3.8) / .6; if(p < 5.6) return 0; return (p - 5.6) / .4; }
+    function diving(L){ return L.kind === 'turtle' && (level >= 3 || (level === 2 && L.idx === 1)); }
+    function submerged(L){ return diving(L) && ((L.phase % 6) > 4.4); }
+    function turtleAlpha(L){ if(!diving(L)) return 1; var p = L.phase % 6; if(p < 3.8) return 1; if(p < 4.4) return 1 - (p - 3.8) / .6; if(p < 5.6) return 0; return (p - 5.6) / .4; }
+    function jawOpen(L){ return L.kind === 'croc' && ((L.phase % 4) < 1.7); }
+    function inJaws(L, x){ if(!jawOpen(L)) return false; for(var i = 0; i < L.n; i++){ var ox = objX(L, i), hx = L.dir > 0 ? ox + L.w - CS*.75 : ox; if(x > hx - 4 && x < hx + CS*.75 + 4) return true; } return false; }
     function laneAt(row){ for(var i = 0; i < lanes.length; i++) if(lanes[i].row === row) return lanes[i]; return null; }
     function riding(L, x){ for(var i = 0; i < L.n; i++){ var ox = objX(L, i); if(x > ox - 4 && x < ox + L.w + 4) return true; } return false; }
     function hitCar(L, x){ for(var i = 0; i < L.n; i++){ var ox = objX(L, i); if(x + 13 > ox + 2 && x - 13 < ox + L.w - 2) return true; } return false; }
-    function die(kind){ if(frog.dead || over) return; frog.dead = 1.1; frog.kind = kind; frog.hop = 0; (snd[kind] || snd.squash)(); }
+    function burst(x, y, n, col, sp, up){ for(var i = 0; i < n; i++){ var a = rnd(0, Math.PI*2), v = rnd(sp*.3, sp); parts.push({ x:x, y:y, vx:Math.cos(a)*v, vy:Math.sin(a)*v - (up || 0), l:rnd(.4, .9), t:0, col:col, r:rnd(2, 4) }); } }
+    function die(kind){ if(frog.dead || over) return; frog.dead = 1.1; frog.kind = kind; frog.hop = 0; (snd[kind] || snd.squash)(); var fy = rowY(frog.row); if(kind === 'splash') burst(frog.x, fy, 14, 'rgba(190,225,255,.9)', 160, 120); else if(kind === 'squash' || kind === 'croc') burst(frog.x, fy, 10, '#9be29b', 120, 60); else if(kind === 'hedge') burst(frog.x, fy + 6, 10, '#3a8a3a', 110, 80); }
     function hop(d){
       if(over || frog.dead || frog.hop > 0) return;
       var tr = frog.row, tx = frog.x;
       if(d === 'U') tr--; else if(d === 'D') tr++; else if(d === 'L') tx -= CS; else if(d === 'R') tx += CS;
       if(tr < 0 || tr > 12 || tx < CS / 2 - 6 || tx > W - CS / 2 + 6) return;
-      frog.fx = frog.x; frog.fr = frog.row; frog.tx = tx; frog.tr = tr; frog.hop = HOP; frog.face = d; snd.hop();
+      frog.fx = frog.x; frog.fr = frog.row; frog.tx = tx; frog.tr = tr; frog.hop = HOP; frog.face = d; frog.idle = 0; snd.hop();
     }
     g.key = function(k, down){ if(!down) return false; var d = isDir(k); if(!d) return false; hop(d); return true; };
     g.pointer = function(type, x, y){ if(type !== 'down' || over) return; var dx = x - frog.x, dy = y - rowY(frog.row); if(Math.abs(dx) < 10 && Math.abs(dy) < 10) return; hop(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'R' : 'L') : (dy > 0 ? 'D' : 'U')); };
-    g.peek = function(){ return { frog:{ x:frog.x, row:frog.row, dead:frog.dead > 0, kind:frog.kind }, lives:lives, level:level, homes:homes.slice(), time:time, score:score, hopping:frog.hop > 0, over:over, layout:lanes.map(function(L){ return L.kind + L.dir + ':' + Math.round(L.sp); }).join(','), theme:theme.water }; };
-    g.dbg = { place:function(x, row){ frog.x = x; frog.row = row; frog.hop = 0; frog.dead = 0; }, time:function(n){ time = n; }, homes:function(arr){ homes = arr.slice(); }, lanes:function(){ return lanes.map(function(L){ return { row:L.row, kind:L.kind, w:L.w, xs:Array.apply(null, Array(L.n)).map(function(_, i){ return Math.round(objX(L, i)); }) }; }); } };
+    g.peek = function(){ return { frog:{ x:frog.x, row:frog.row, dead:frog.dead > 0, kind:frog.kind, face:frog.face }, lives:lives, level:level, bays:bays.slice(), open:bays.filter(function(b){ return b; }).length, time:time, timeMax:TIME, score:score, hopping:frog.hop > 0, over:over, layout:lanes.map(function(L){ return L.kind + L.dir + ':' + Math.round(L.sp); }).join(','), theme:theme.water, themeName:theme.name, night:!!theme.night, banner:+banner.toFixed(2), parts:parts.length, kinds:lanes.map(function(L){ return L.kind; }) }; };
+    g.dbg = { place:function(x, row){ frog.x = x; frog.row = row; frog.hop = 0; frog.dead = 0; }, time:function(n){ time = n; }, bays:function(arr){ bays = arr.slice(); }, level:function(n){ level = n; buildLanes(); spawn(); showBanner(); api.status((api.touch ? 'swipe or tap a side to hop' : 'arrows hop') + '  \u00b7  level ' + level + '  \u00b7  ' + theme.name); }, lanes:function(){ return lanes.map(function(L){ return { row:L.row, kind:L.kind, w:L.w, dir:L.dir, xs:Array.apply(null, Array(L.n)).map(function(_, i){ return Math.round(objX(L, i)); }), jaws:jawOpen(L) }; }); }, themes:function(){ return THEMES.map(function(th){ return th.name; }); }, baysOf:baysOf, timeOf:timeOf };
     function land(){
       frog.x = frog.tx; frog.row = frog.tr;
       if(frog.row < bestRow){ bestRow = frog.row; score += 10; api.score(score); }
       if(frog.row === 0){
         var hit = -1; HOMES.forEach(function(hc, i){ if(Math.abs(frog.x - (hc * CS + CS / 2)) < 18) hit = i; });
-        if(hit < 0 || homes[hit]){ die('hedge'); return; }
-        homes[hit] = true; score += 50 + Math.ceil(time) * 2; api.score(score); flash('home  +' + (50 + Math.ceil(time) * 2)); snd.home();
-        if(homes.every(function(h){ return h; })){ level++; homes = [false, false, false, false, false]; score += 1000; api.score(score); lives = Math.min(5, lives + 1); flash('level ' + level + '  +1000'); buildLanes(); snd.level(); api.status((api.touch ? 'swipe or tap a side to hop' : 'arrows hop') + '  ·  level ' + level); }
+        if(hit < 0 || !bays[hit]){ die('hedge'); return; }
+        var home = 50 + Math.ceil(time) * 2, lv = 500 * level; score += home + lv; api.score(score); snd.home(); burst(frog.x, CS / 2, 26, '#ffd166', 200, 140); burst(frog.x, CS / 2, 16, '#3ddc84', 160, 100);
+        level++; lives = Math.min(5, lives + 1); buildLanes(); snd.level(); showBanner(); flash('home  +' + home + '  \u00b7  level ' + (level - 1) + ' clear  +' + lv);
+        api.status((api.touch ? 'swipe or tap a side to hop' : 'arrows hop') + '  \u00b7  level ' + level + '  \u00b7  ' + theme.name);
         spawn(); return;
       }
       var L = laneAt(frog.row);
-      if(L && L.kind !== 'log' && L.kind !== 'turtle' && hitCar(L, frog.x)){ die('squash'); return; }
-      if(L && (L.kind === 'log' || L.kind === 'turtle') && (!riding(L, frog.x) || submerged(L))){ die('splash'); return; }
+      if(L && L.kind !== 'log' && L.kind !== 'turtle' && L.kind !== 'croc' && hitCar(L, frog.x)){ die('squash'); return; }
+      if(L && (L.kind === 'log' || L.kind === 'turtle' || L.kind === 'croc') && (!riding(L, frog.x) || submerged(L))){ die('splash'); return; }
+      if(L && inJaws(L, frog.x)){ die('croc'); return; }
     }
-    function flash(s){ msg = s; msgT = 1.4; }
+    function flash(s){ msg = s; msgT = 1.6; }
     g.update = function(dt){
-      if(over) return; t += dt; msgT = Math.max(0, msgT - dt);
-      lanes.forEach(function(L){ L.off = (L.off + L.dir * L.sp * mult() * dt) % L.P; if(L.off < 0) L.off += L.P; L.phase += dt; });
-      if(frog.dead){ frog.dead -= dt; if(frog.dead <= 0){ frog.dead = 0; lives--; if(lives <= 0){ over = true; api.over('Out of frogs on level ' + level); return; } spawn(); } return; }
+      if(over) return; t += dt; msgT = Math.max(0, msgT - dt); banner = Math.max(0, banner - dt); lifeLost = Math.max(0, lifeLost - dt); frog.idle += dt; if(frog.tongue > 0) frog.tongue -= dt; else if(frog.idle > 2 && Math.random() < dt*.5) frog.tongue = .25;
+      lanes.forEach(function(L){ L.off = (L.off + L.dir * L.sp * dt) % L.P; if(L.off < 0) L.off += L.P; L.phase += dt; });
+      for(var p = parts.length - 1; p >= 0; p--){ var q = parts[p]; q.t += dt; q.x += q.vx*dt; q.y += q.vy*dt; q.vy += 420*dt; if(q.t > q.l) parts.splice(p, 1); }
+      deco.forEach(function(d){ if(theme.deco === 'snow'){ d.y += d.v*dt*.6; d.x += Math.sin(t + d.ph)*dt*12; if(d.y > PLAY){ d.y = 0; d.x = rnd(0, W); } } });
+      if(frog.dead){ frog.dead -= dt; if(frog.dead <= 0){ frog.dead = 0; lives--; lifeLost = .6; if(lives <= 0){ over = true; api.over('Out of frogs on level ' + level + ', ' + theme.name); return; } spawn(); } return; }
       if(frog.hop > 0){ frog.hop -= dt; if(frog.hop <= 0){ frog.hop = 0; land(); } return; }
       time -= dt; if(time <= 0){ time = 0; die('time'); return; }
       var L = laneAt(frog.row);
       if(L){
-        if(L.kind === 'log' || L.kind === 'turtle'){ frog.x += L.dir * L.sp * mult() * dt; if(frog.x < 6 || frog.x > W - 6){ die('splash'); return; } if(submerged(L) || !riding(L, frog.x)){ die('splash'); return; } }
+        if(L.kind === 'log' || L.kind === 'turtle' || L.kind === 'croc'){ frog.x += L.dir * L.sp * dt; if(frog.x < 6 || frog.x > W - 6){ die('splash'); return; } if(submerged(L) || !riding(L, frog.x)){ die('splash'); return; } if(inJaws(L, frog.x)){ die('croc'); return; } }
         else if(hitCar(L, frog.x)){ die('squash'); return; }
       }
     };
-    function frogAt(c, x, y, s, col, squash){
-      c.save(); c.translate(x, y); if(squash) c.scale(1.35, .35);
-      c.fillStyle = col; rr(c, -12 * s, -10 * s, 24 * s, 20 * s, 8 * s); c.fill();
-      c.fillStyle = col; [[-14, -6], [14, -6], [-14, 8], [14, 8]].forEach(function(p){ c.beginPath(); c.ellipse(p[0] * s, p[1] * s, 5 * s, 3.5 * s, 0, 0, Math.PI * 2); c.fill(); });
-      c.fillStyle = '#fff'; c.beginPath(); c.arc(-6 * s, -9 * s, 3.2 * s, 0, Math.PI * 2); c.arc(6 * s, -9 * s, 3.2 * s, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#111'; c.beginPath(); c.arc(-6 * s, -9 * s, 1.5 * s, 0, Math.PI * 2); c.arc(6 * s, -9 * s, 1.5 * s, 0, Math.PI * 2); c.fill();
+    /* the frog: faces the way it last hopped, stretches along the hop, legs tuck at the top of it, breathes when it sits, flicks its tongue when bored */
+    function frogAt(c, x, y, s, col, squash, face, k, breath, tongue){
+      c.save(); c.translate(x, y); c.rotate({ U:0, R:Math.PI/2, D:Math.PI, L:-Math.PI/2 }[face || 'U'] || 0); if(squash) c.scale(1.35, .35); else { var st = k > 0 && k < 1 ? Math.sin(k*Math.PI) : 0; c.scale(s*(1 - st*.18 + (breath || 0)), s*(1 + st*.3 - (breath || 0))); }
+      var leg = k > 0 && k < 1 ? Math.sin(k*Math.PI) : 0;
+      c.fillStyle = col; [[-14, -6 - leg*4], [14, -6 - leg*4], [-15 - leg*4, 9 + leg*6], [15 + leg*4, 9 + leg*6]].forEach(function(p){ c.beginPath(); c.ellipse(p[0], p[1], 5, 3.5 + leg*2, leg*.6*(p[0] < 0 ? -1 : 1), 0, Math.PI * 2); c.fill(); });
+      c.fillStyle = col; rr(c, -12, -10, 24, 20, 8); c.fill(); c.fillStyle = 'rgba(0,0,0,.12)'; rr(c, -7, -2, 14, 9, 5); c.fill();
+      if(tongue > 0){ c.strokeStyle = '#ff5f7a'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, -10); c.lineTo(0, -10 - Math.sin(tongue/.25*Math.PI)*12); c.stroke(); }
+      c.fillStyle = '#fff'; c.beginPath(); c.arc(-6, -9, 3.2, 0, Math.PI * 2); c.arc(6, -9, 3.2, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#111'; c.beginPath(); c.arc(-6, -9, 1.5, 0, Math.PI * 2); c.arc(6, -9, 1.5, 0, Math.PI * 2); c.fill();
       c.restore();
     }
+    function drawDeco(c){ var d = theme.deco;
+      if(d === 'flowers'){ deco.forEach(function(f, i){ if(i % 2) return; var x = f.x, y = (i % 4 ? 6 : 12) * CS + 8 + f.s*10; c.fillStyle = ['#ff8a00', '#ffd166', '#ff5f7a', '#f4f1ea'][i % 4]; c.beginPath(); c.arc(x, y, 3, 0, 7); c.fill(); c.fillStyle = '#ffd166'; c.beginPath(); c.arc(x, y, 1.2, 0, 7); c.fill(); }); }
+      else if(d === 'sun'){ var sg = c.createRadialGradient(W*.8, CS*.5, 4, W*.8, CS*.5, 60); sg.addColorStop(0, 'rgba(255,190,80,.9)'); sg.addColorStop(1, 'rgba(255,120,40,0)'); c.fillStyle = sg; c.fillRect(0, 0, W, CS); c.fillStyle = 'rgba(255,140,60,.12)'; c.fillRect(0, CS, W, 5*CS); }
+      else if(d === 'stars' || d === 'neon'){ deco.forEach(function(f, i){ if(f.y > 6.9*CS && f.y < 12*CS) return; var a = .3 + Math.sin(t*3 + f.ph)*.3; c.fillStyle = d === 'neon' ? 'rgba('+(i % 2 ? '255,60,200' : '60,220,255')+','+a+')' : 'rgba(255,255,255,'+a+')'; c.fillRect(f.x, f.y, 1.5*f.s, 1.5*f.s); }); if(d === 'neon'){ c.fillStyle = 'rgba(255,60,200,.55)'; c.fillRect(0, 7*CS - 2, W, 2); c.fillStyle = 'rgba(60,220,255,.55)'; c.fillRect(0, 12*CS, W, 2); } }
+      else if(d === 'reeds'){ deco.forEach(function(f, i){ if(i % 3) return; var x = f.x, base = (i % 2 ? 6 : 12)*CS + CS; c.strokeStyle = '#4a7a2a'; c.lineWidth = 2; c.beginPath(); c.moveTo(x, base); c.quadraticCurveTo(x + Math.sin(t + f.ph)*4, base - 18, x + Math.sin(t + f.ph)*7, base - 30*f.s); c.stroke(); }); c.fillStyle = 'rgba(120,200,80,.08)'; c.fillRect(0, CS, W, 5*CS); }
+      else if(d === 'snow'){ deco.forEach(function(f){ c.fillStyle = 'rgba(255,255,255,.75)'; c.beginPath(); c.arc(f.x, f.y, 1.4*f.s, 0, 7); c.fill(); }); c.strokeStyle = 'rgba(255,255,255,.25)'; c.lineWidth = 1; for(var i = 0; i < 6; i++){ c.beginPath(); c.moveTo(i*80 + 10, CS + 10); c.lineTo(i*80 + 50, CS*3 + 20); c.lineTo(i*80 + 30, CS*5.6); c.stroke(); } }
+      else if(d === 'cactus'){ deco.forEach(function(f, i){ if(i % 4) return; var x = f.x, base = (i % 2 ? 6 : 12)*CS + CS - 4; c.fillStyle = '#3a7a3a'; rr(c, x - 4, base - 26*f.s, 8, 26*f.s, 4); c.fill(); rr(c, x - 12, base - 18*f.s, 8, 6, 3); c.fill(); rr(c, x + 4, base - 14*f.s, 8, 6, 3); c.fill(); }); c.fillStyle = 'rgba(255,200,120,'+(.05 + Math.sin(t*2)*.03)+')'; c.fillRect(0, 7*CS, W, 5*CS); } }
     g.draw = function(c){
-      c.fillStyle = '#0b0d1c'; c.fillRect(0, 0, W, H);
-      /* homes */
+      c.fillStyle = theme.night ? '#05060f' : '#0b0d1c'; c.fillRect(0, 0, W, H);
+      /* home bank: open bays are dark doorways, closed ones a hedge */
       c.fillStyle = theme.bank; c.fillRect(0, 0, W, CS);
-      HOMES.forEach(function(hc, i){ c.fillStyle = '#0b0d1c'; c.fillRect(hc * CS + 3, 4, CS - 6, CS - 4); if(homes[i]) frogAt(c, hc * CS + CS / 2, CS / 2 + 2, .8, '#3ddc84'); });
+      HOMES.forEach(function(hc, i){ var bx = hc * CS; if(bays[i]){ c.fillStyle = theme.night ? '#02030a' : '#0b0d1c'; c.fillRect(bx + 3, 4, CS - 6, CS - 4); c.fillStyle = 'rgba(61,220,132,'+(.25 + Math.sin(t*4 + i)*.15)+')'; c.fillRect(bx + 3, CS - 3, CS - 6, 3); } else { c.fillStyle = '#245c2a'; for(var b = 0; b < 3; b++){ c.beginPath(); c.arc(bx + 8 + b*12, 18 + (b % 2)*6, 9, 0, 7); c.fill(); } } });
       /* river */
       c.fillStyle = theme.water; c.fillRect(0, CS, W, 5 * CS);
-      c.strokeStyle = 'rgba(255,255,255,.08)'; c.lineWidth = 2; for(var r = 1; r <= 5; r++){ c.beginPath(); for(var x = 0; x <= W; x += 20){ var yy = rowY(r) + Math.sin((x + t * 60 * (r % 2 ? 1 : -1)) / 30) * 3; x ? c.lineTo(x, yy) : c.moveTo(x, yy); } c.stroke(); }
+      c.strokeStyle = theme.ice ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.08)'; c.lineWidth = 2; for(var r = 1; r <= 5; r++){ c.beginPath(); for(var x = 0; x <= W; x += 20){ var yy = rowY(r) + (theme.ice ? 0 : Math.sin((x + t * 60 * (r % 2 ? 1 : -1)) / 30) * 3); x ? c.lineTo(x, yy) : c.moveTo(x, yy); } c.stroke(); }
+      if(!theme.ice) for(var sp = 0; sp < 8; sp++){ var sx = (sp*61 + t*25) % W, sy = CS + ((sp*37) % (5*CS)); c.fillStyle = 'rgba(255,255,255,'+(.15 + Math.sin(t*5 + sp)*.15)+')'; c.fillRect(sx, sy, 3, 1.5); }
       /* median and start */
       c.fillStyle = theme.side; c.fillRect(0, 6 * CS, W, CS); c.fillRect(0, 12 * CS, W, CS);
       c.fillStyle = 'rgba(255,255,255,.08)'; for(var k = 0; k < COLS; k += 2){ c.fillRect(k * CS, 6 * CS, CS, CS); c.fillRect((k + 1) * CS, 12 * CS, CS, CS); }
       /* road */
       c.fillStyle = theme.road; c.fillRect(0, 7 * CS, W, 5 * CS);
       c.strokeStyle = 'rgba(255,255,255,.25)'; c.setLineDash([16, 14]); for(var rr2 = 8; rr2 <= 11; rr2++){ c.beginPath(); c.moveTo(0, rr2 * CS); c.lineTo(W, rr2 * CS); c.stroke(); } c.setLineDash([]);
+      drawDeco(c);
       lanes.forEach(function(L){
         var y = rowY(L.row), a = turtleAlpha(L);
         for(var i = 0; i < L.n; i++){
           var ox = objX(L, i); if(ox + L.w < -10 || ox > W + 10) continue;
-          if(L.kind === 'log'){ c.fillStyle = '#8a5a2b'; rr(c, ox, y - 13, L.w, 26, 12); c.fill(); c.fillStyle = 'rgba(0,0,0,.18)'; rr(c, ox + 8, y - 4, L.w - 16, 4, 2); c.fill(); }
-          else if(L.kind === 'turtle'){ c.globalAlpha = a; for(var s = 0; s < L.len; s++){ var cx = ox + s * CS + CS / 2; c.fillStyle = '#2f9e5b'; c.beginPath(); c.arc(cx, y, 14, 0, Math.PI * 2); c.fill(); c.fillStyle = '#1d6a3c'; c.beginPath(); c.arc(cx, y, 8, 0, Math.PI * 2); c.fill(); c.fillStyle = '#2f9e5b'; c.beginPath(); c.arc(cx + L.dir * 16, y, 5, 0, Math.PI * 2); c.fill(); } c.globalAlpha = 1; }
+          if(L.kind === 'log'){ var bob = Math.sin(t*2 + i + L.phase)*1.5; c.fillStyle = theme.log; rr(c, ox, y - 13 + bob, L.w, 26, 12); c.fill(); c.fillStyle = 'rgba(0,0,0,.18)'; rr(c, ox + 8, y - 4 + bob, L.w - 16, 4, 2); c.fill(); c.fillStyle = 'rgba(255,255,255,.1)'; rr(c, ox + 6, y - 10 + bob, L.w - 12, 3, 2); c.fill(); }
+          else if(L.kind === 'croc'){ var open = jawOpen(L), hx = L.dir > 0 ? ox + L.w - CS*.75 : ox; c.fillStyle = '#3a6a2a'; rr(c, ox, y - 12, L.w, 24, 10); c.fill(); c.fillStyle = '#2a5a1a'; for(var sc = 0; sc < L.len*2; sc++){ c.beginPath(); c.arc(ox + 10 + sc*18, y - 8, 4, 0, 7); c.fill(); } c.fillStyle = open ? '#ff8a8a' : '#3a6a2a'; if(open){ c.beginPath(); if(L.dir > 0){ c.moveTo(hx, y - 10); c.lineTo(hx + CS*.75 + 4, y - 16); c.lineTo(hx + CS*.75, y + 10); c.lineTo(hx, y + 10); } else { c.moveTo(hx + CS*.75, y - 10); c.lineTo(hx - 4, y - 16); c.lineTo(hx, y + 10); c.lineTo(hx + CS*.75, y + 10); } c.closePath(); c.fill(); c.fillStyle = '#fff'; for(var th = 0; th < 4; th++){ var tx = hx + 6 + th*7; c.beginPath(); c.moveTo(tx, y - 6); c.lineTo(tx + 3, y); c.lineTo(tx + 6, y - 6); c.fill(); } } c.fillStyle = '#ffd166'; c.beginPath(); c.arc(hx + (L.dir > 0 ? 6 : CS*.75 - 6), y - 8, 2.5, 0, 7); c.fill(); }
+          else if(L.kind === 'turtle'){ c.globalAlpha = a; for(var s = 0; s < L.len; s++){ var cx = ox + s * CS + CS / 2, blink = Math.sin(t*3 + s + L.phase*2) > .95; c.fillStyle = '#2f9e5b'; c.beginPath(); c.arc(cx, y, 14, 0, Math.PI * 2); c.fill(); c.fillStyle = '#1d6a3c'; c.beginPath(); c.arc(cx, y, 8, 0, Math.PI * 2); c.fill(); c.fillStyle = '#2f9e5b'; c.beginPath(); c.arc(cx + L.dir * 16, y, 5, 0, Math.PI * 2); c.fill(); if(!blink){ c.fillStyle = '#111'; c.fillRect(cx + L.dir*18 - 1, y - 2, 2, 2); } } c.globalAlpha = 1; }
           else {
-            var col = { truck:'#c8c8d0', race:'#ff3b3b', car:'#ffd166', dozer:'#63e6be' }[L.kind];
+            var col = { truck:'#c8c8d0', race:'#ff3b3b', car:'#ffd166', dozer:'#63e6be' }[L.kind], hx2 = L.dir > 0 ? ox + L.w - 4 : ox + 4;
+            if(theme.night){ var bg2 = c.createLinearGradient(hx2, 0, hx2 + L.dir*70, 0); bg2.addColorStop(0, 'rgba(255,240,180,.35)'); bg2.addColorStop(1, 'rgba(255,240,180,0)'); c.fillStyle = bg2; c.beginPath(); c.moveTo(hx2, y - 10); c.lineTo(hx2 + L.dir*70, y - 22); c.lineTo(hx2 + L.dir*70, y + 22); c.lineTo(hx2, y + 10); c.closePath(); c.fill(); }
             c.fillStyle = col; rr(c, ox + 2, y - 13, L.w - 4, 26, 6); c.fill();
             c.fillStyle = 'rgba(0,0,0,.35)'; if(L.kind === 'truck'){ rr(c, ox + (L.dir > 0 ? L.w - 26 : 4), y - 11, 22, 22, 4); c.fill(); } else { rr(c, ox + 10, y - 9, L.w - 20, 8, 3); c.fill(); }
-            c.fillStyle = '#fff'; var hx = L.dir > 0 ? ox + L.w - 4 : ox + 4; c.fillRect(hx - 2, y - 11, 3, 5); c.fillRect(hx - 2, y + 6, 3, 5);
+            c.fillStyle = '#222'; c.fillRect(ox + 6, y - 15, 8, 4); c.fillRect(ox + L.w - 14, y - 15, 8, 4); c.fillRect(ox + 6, y + 11, 8, 4); c.fillRect(ox + L.w - 14, y + 11, 8, 4);
+            c.fillStyle = theme.night ? '#fff7d0' : '#fff'; c.fillRect(hx2 - 2, y - 11, 3, 5); c.fillRect(hx2 - 2, y + 6, 3, 5);
+            if(L.kind === 'race'){ var ex = L.dir > 0 ? ox : ox + L.w; c.fillStyle = 'rgba(255,140,40,'+(.4 + Math.sin(t*40 + i)*.3)+')'; c.beginPath(); c.arc(ex, y + 4, 4, 0, 7); c.fill(); }
           }
         }
       });
       /* frog */
       if(frog.dead){
-        var fy = rowY(frog.row), k2 = frog.kind;
-        if(k2 === 'splash'){ c.strokeStyle = 'rgba(180,220,255,' + Math.max(0, frog.dead) + ')'; c.lineWidth = 3; c.beginPath(); c.arc(frog.x, fy, 8 + (1.1 - frog.dead) * 30, 0, Math.PI * 2); c.stroke(); }
-        else if(k2 === 'squash') frogAt(c, frog.x, fy, 1, '#9be29b', true);
-        else { c.globalAlpha = Math.max(0, frog.dead); frogAt(c, frog.x, fy, 1, k2 === 'time' ? '#9aa' : '#9be29b'); c.globalAlpha = 1; text(c, k2 === 'time' ? 'time!' : 'ouch', frog.x, fy - 26, 12, '#ff6b6b', 'center', 800); }
+        var fy = rowY(frog.row), k2 = frog.kind, dk = 1 - Math.max(0, frog.dead)/1.1;
+        if(k2 === 'splash'){ for(var rg = 0; rg < 3; rg++){ var rk = Math.max(0, dk - rg*.15); c.strokeStyle = 'rgba(180,220,255,' + Math.max(0, 1 - rk*1.3) + ')'; c.lineWidth = 3 - rg; c.beginPath(); c.arc(frog.x, fy, 6 + rk * 34, 0, Math.PI * 2); c.stroke(); } }
+        else if(k2 === 'squash' || k2 === 'croc'){ frogAt(c, frog.x, fy, 1, '#9be29b', true, frog.face); for(var st2 = 0; st2 < 4; st2++){ var an = t*5 + st2*Math.PI/2; text(c, '\u2726', frog.x + Math.cos(an)*22, fy - 8 + Math.sin(an)*8, 12, '#ffd166', 'center', 800); } if(k2 === 'croc') text(c, 'chomp', frog.x, fy - 26, 12, '#ff6b6b', 'center', 800); }
+        else if(k2 === 'hedge'){ c.save(); c.translate(Math.sin(dk*40)*3*(1 - dk), 0); frogAt(c, frog.x, fy + 8, 1, '#9be29b', false, 'D'); c.restore(); text(c, 'ouch', frog.x, fy - 20, 12, '#ff6b6b', 'center', 800); }
+        else { c.globalAlpha = Math.max(0, frog.dead); c.save(); c.translate(Math.sin(t*50)*2, 0); frogAt(c, frog.x, fy, 1, '#9aa', false, frog.face); c.restore(); c.globalAlpha = 1; if(Math.sin(t*14) > 0) text(c, 'time!', frog.x, fy - 26, 12, '#ff6b6b', 'center', 800); }
       } else {
         var p = frog.hop > 0 ? 1 - frog.hop / HOP : 1, fx = frog.fx + (frog.tx - frog.fx) * p, fyy = rowY(frog.fr) + (rowY(frog.tr) - rowY(frog.fr)) * p, lift = frog.hop > 0 ? Math.sin(p * Math.PI) * .35 : 0;
         if(frog.hop <= 0){ fx = frog.x; fyy = rowY(frog.row); }
-        frogAt(c, fx, fyy, 1 + lift, '#3ddc84');
+        if(frog.hop > 0){ c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(fx, fyy + 12, 12*(1 - lift), 5*(1 - lift), 0, 0, 7); c.fill(); }
+        frogAt(c, fx, fyy - lift*14, 1 + lift*.4, '#3ddc84', false, frog.face, frog.hop > 0 ? p : 0, frog.hop > 0 ? 0 : Math.sin(t*3)*.02, frog.tongue);
       }
+      for(var pp = 0; pp < parts.length; pp++){ var q = parts[pp]; c.globalAlpha = Math.max(0, 1 - q.t/q.l); c.fillStyle = q.col; c.beginPath(); c.arc(q.x, q.y, q.r, 0, 7); c.fill(); } c.globalAlpha = 1;
       /* hud */
       c.fillStyle = '#07070b'; c.fillRect(0, PLAY, W, H - PLAY);
-      for(var l = 0; l < lives; l++) frogAt(c, 18 + l * 26, PLAY + 20, .55, '#3ddc84');
-      text(c, 'level ' + level, W / 2, PLAY + 20, 12, 'rgba(255,255,255,.7)', 'center', 700);
-      var tw = 140, tf = time / TIME; c.fillStyle = 'rgba(255,255,255,.12)'; rr(c, W - tw - 12, PLAY + 14, tw, 12, 4); c.fill(); c.fillStyle = tf < .25 ? '#ff3b3b' : '#3ddc84'; if(tf > 0){ rr(c, W - tw - 12, PLAY + 14, tw * tf, 12, 4); c.fill(); }
-      if(msgT > 0) text(c, msg, W / 2, 6.5 * CS, 14, '#ffd166', 'center', 800);
+      for(var l = 0; l < lives; l++) frogAt(c, 18 + l * 26, PLAY + 20, .55, '#3ddc84', false, 'U', 0, Math.sin(t*3 + l)*.03); if(lifeLost > 0){ c.globalAlpha = lifeLost/.6; frogAt(c, 18 + lives * 26, PLAY + 20 - (1 - lifeLost/.6)*22, .55*(1 + (1 - lifeLost/.6)*.6), '#9aa', false, 'U'); c.globalAlpha = 1; }
+      text(c, 'level ' + level + '  \u00b7  ' + theme.name, W / 2 - 14, PLAY + 20, 12, 'rgba(255,255,255,.7)', 'center', 700);
+      var tw = 96, tf = time / TIME; c.fillStyle = 'rgba(255,255,255,.12)'; rr(c, W - tw - 12, PLAY + 14, tw, 12, 4); c.fill(); c.fillStyle = tf < .25 ? (Math.sin(t*12) > 0 ? '#ff3b3b' : '#ff8a8a') : '#3ddc84'; if(tf > 0){ rr(c, W - tw - 12, PLAY + 14, tw * tf, 12, 4); c.fill(); }
+      if(msgT > 0) text(c, msg, W / 2, 6.5 * CS, 13, '#ffd166', 'center', 800);
+      /* the level card slides in from the top and out again */
+      if(banner > 0){ var bk = banner > 1.8 ? (2.2 - banner)/.4 : banner < .4 ? banner/.4 : 1, by = 3.5*CS - (1 - bk)*60; c.globalAlpha = bk; c.fillStyle = 'rgba(7,7,11,.85)'; rr(c, W/2 - 140, by - 30, 280, 60, 14); c.fill(); text(c, 'level ' + level, W/2, by - 10, 18, '#ffd166', 'center', 800); text(c, theme.name + (baysOf(level) < 5 ? '  \u00b7  ' + baysOf(level) + (baysOf(level) === 1 ? ' bay open' : ' bays open') : ''), W/2, by + 12, 12, 'rgba(255,255,255,.75)', 'center', 700); c.globalAlpha = 1; }
     };
     return g;
   }
-
 /* tigOS arcade games.js, part 13: invaders. The parts in this folder are concatenated in name order by build.py, so they share one scope. */
   /* ---------- Invaders ---------- */
   function invaders(api){
@@ -607,11 +679,11 @@ window.TIG_GAMES = (function(){
     { id:'bricks', tkeys:'Drag to move the paddle, tap to launch',  name:'Bricks', blurb:'Classic brick breaker. Angle the ball off the paddle, clear every level.', keys:'Arrows or mouse move, space launches', W:640, H:480, pad:'lr', color:'#ff8a00', make:bricks, icon:I('<rect x="3" y="4" width="5" height="3"/><rect x="9.5" y="4" width="5" height="3"/><rect x="16" y="4" width="5" height="3"/><rect x="6" y="8.5" width="5" height="3"/><rect x="13" y="8.5" width="5" height="3"/><circle cx="12" cy="15.5" r="1.4"/><path d="M8 20h8"/>') },
     { id:'stacker', tkeys:'Pad moves, rotates, drops and holds. Swipe works too', name:'Stacker', blurb:'Seven falling shapes, ghost piece, hold slot, hard drop. Ten lines a level.', keys:'Arrows move, up rotates, space drops, c holds', W:460, H:540, pad:'stack', color:'#a78bfa', make:stacker, icon:I('<rect x="9.5" y="3" width="5" height="5"/><rect x="4.5" y="8" width="5" height="5"/><rect x="9.5" y="8" width="5" height="5"/><rect x="14.5" y="8" width="5" height="5"/><path d="M3 20h18"/>') },
     { id:'rocks', tkeys:'Pad turns, thrusts and fires',   name:'Rocks', blurb:'Vector asteroids with thrust, drift and screen wrap. Big rocks split into small ones.', keys:'Left/right turn, up thrusts, space fires', W:640, H:480, pad:'ship', color:'#8cc7ff', make:rocks, icon:I('<path d="M12 4l4 8-4 8-4-8z"/><path d="M6 6l2 1M18 6l-2 1"/><circle cx="19" cy="17" r="2"/>') },
-    { id:'2048', tkeys:'Swipe to slide',    name:'Tiles', blurb:'Slide and merge matching numbers. Reach 2048, then keep going.', keys:'Arrows or WASD slide', W:480, H:480, pad:'dirs', color:'#ffd166', make:tiles, icon:I('<rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/>') },
+    { id:'2048', tkeys:'Swipe to slide',    name:'Tiles', blurb:'Slide and merge matching numbers. Reach 2048, then keep going.', keys:'Arrows or WASD slide', W:480, H:480, pad:'swipe', color:'#ffd166', make:tiles, icon:I('<rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/>') },
     { id:'flap', tkeys:'Tap to flap',    name:'Flap', blurb:'One button, endless pipes. Tap or press space to flap through the gaps.', keys:'Space or click flaps', W:360, H:560, pad:'tap', color:'#5aa9ff', make:flap, icon:I('<path d="M4 13c2-6 8-8 13-6 2 1 3 3 3 5-2 4-7 6-12 5"/><path d="M8 12l3 2"/><circle cx="15" cy="10" r=".8" fill="currentColor"/>') },
-    { id:'mines', tkeys:'Tap digs, press and hold flags',   name:'Mines', blurb:'Sixteen by twelve, thirty mines. First click is always safe. Chord on numbers.', keys:'Click digs, right click flags, or arrows + space + f', W:480, H:400, pad:'mines', color:'#ff5f57', make:mines, icon:I('<circle cx="12" cy="13" r="6"/><path d="M12 4v3M5 13H2M22 13h-3M12 22v-3M6.5 7.5l2 2M17.5 7.5l-2 2"/>') },
+    { id:'mines', tkeys:'Tap digs, press and hold flags (twice for a yellow maybe)',   name:'Mines', blurb:'Thirty mines on level one, sixty on two, ninety on three, the board growing with them. Three lives. Right click once for a flag, twice for a yellow maybe. First click is always safe, chord on numbers.', keys:'Click digs, right click flags (twice for a maybe), or arrows + space + f', W:600, H:480, pad:'mines', color:'#ff5f57', make:mines, icon:I('<circle cx="12" cy="13" r="6"/><path d="M12 4v3M5 13H2M22 13h-3M12 22v-3M6.5 7.5l2 2M17.5 7.5l-2 2"/>') },
     { id:'paddle', tkeys:'Drag to move your paddle',  name:'Paddle', blurb:'Table tennis against a cpu that gets sharper as you pull ahead. First to seven.', keys:'Up/down or mouse move', W:640, H:400, pad:'ud', color:'#63e6be', make:paddle, icon:I('<rect x="3.5" y="7" width="2.5" height="10" rx="1"/><rect x="18" y="7" width="2.5" height="10" rx="1"/><circle cx="12" cy="12" r="1.6"/><path d="M12 3v3M12 18v3"/>') },
-    { id:'hopper', premium:true, rank:6, tkeys:'Swipe, tap a side of the frog, or use the pad', name:'Hopper', blurb:'Five lanes of traffic, five lanes of river, five homes to fill. Logs carry you, turtles dive, the clock never stops, and every level deals a new, faster road.', keys:'Arrows or WASD hop', W:440, H:560, pad:'dirs', color:'#3ddc84', make:hopper, icon:I('<rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M3 13h18M3 17h18"/><circle cx="12" cy="11.5" r="2.2"/><circle cx="10.8" cy="10.6" r=".5" fill="currentColor"/><circle cx="13.2" cy="10.6" r=".5" fill="currentColor"/>') },
+    { id:'hopper', premium:true, rank:6, tkeys:'Swipe, tap a side of the frog, or use the pad', name:'Hopper', blurb:'Five lanes of traffic, five lanes of river, one frog to get home each level. Every level is a new place (meadow, sunset highway, night city, swamp, frozen lake, desert, neon strip) with faster traffic, fewer open bays, diving turtles and, later, crocodiles.', keys:'Arrows or WASD hop', W:440, H:560, pad:'dirs', color:'#3ddc84', make:hopper, icon:I('<rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M3 13h18M3 17h18"/><circle cx="12" cy="11.5" r="2.2"/><circle cx="10.8" cy="10.6" r=".5" fill="currentColor"/><circle cx="13.2" cy="10.6" r=".5" fill="currentColor"/>') },
     { id:'invaders', tkeys:'Drag to steer, tap to fire, or use the pad', name:'Invaders', blurb:'Fifty five aliens march down the screen and speed up as they thin out. Four bunkers, one shot at a time, a mystery saucer worth up to 300.', keys:'Left/right move, space fires', W:480, H:560, pad:'lr', color:'#b8ff5c', make:invaders, icon:I('<path d="M7 6h10v3h3v6h-3v3h-2v-3H9v3H7v-3H4V9h3z"/><rect x="9" y="9" width="2" height="2" fill="currentColor"/><rect x="13" y="9" width="2" height="2" fill="currentColor"/><path d="M12 19v2"/>') },
     { id:'kong', premium:true, rank:3, tkeys:'Pad moves and climbs, jump button or a tap jumps', name:'Kong', blurb:'Climb six red girders while the ape hurls barrels. Jump them, hammer them, rescue the penguin at the top. This is for Greggy D!', keys:'Arrows move and climb, space jumps', W:480, H:560, pad:'plat', color:'#e24b4b', make:kong, icon:I('<rect x="3" y="3" width="6" height="18" rx="1"/><path d="M3 8h6M3 13h6M3 18h6"/><ellipse cx="16" cy="14" rx="5" ry="6"/><path d="M11 12h10M11 16h10"/>') }
   ];
