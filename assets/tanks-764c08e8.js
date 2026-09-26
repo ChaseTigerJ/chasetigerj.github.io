@@ -16,8 +16,10 @@
 
   /* ---------- player settings: graphics tier and volume, kept in localStorage, edited on the difficulty card ---------- */
   var GFX = ['low', 'medium', 'high', 'ultra'];
-  var SET = { gfx:'high', vol:.8 };
-  (function(){ try { var o = JSON.parse(localStorage.getItem('tigos.tanks') || '{}'); Object.keys(SET).forEach(function(k){ if(o[k] !== undefined) SET[k] = o[k]; }); } catch(e){} SET.vol = clamp(+SET.vol, 0, 1); if(GFX.indexOf(SET.gfx) < 0) SET.gfx = 'high'; })();
+  var SET = { gfx:'high', vol:.8, color:0, cpus:0, wind:'breezy' };   /* color: PALETTE index for your tank; cpus: 0 = more as you win (1, then 2 from round 3, 3 from round 5), 1-3 fixed; wind: calm, breezy or gusty */
+  (function(){ try { var o = JSON.parse(localStorage.getItem('tigos.tanks') || '{}'); Object.keys(SET).forEach(function(k){ if(o[k] !== undefined) SET[k] = o[k]; }); } catch(e){} SET.vol = clamp(+SET.vol, 0, 1); if(GFX.indexOf(SET.gfx) < 0) SET.gfx = 'high'; SET.color = clamp(Math.round(+SET.color) || 0, 0, 7); SET.cpus = clamp(Math.round(+SET.cpus) || 0, 0, 3); if(['calm', 'breezy', 'gusty'].indexOf(SET.wind) < 0) SET.wind = 'breezy'; })();
+  var PALETTE = [['#63e6be', 'mint'], ['#5ab4ff', 'blue'], ['#ffd166', 'yellow'], ['#ff6b6b', 'red'], ['#c084fc', 'purple'], ['#7ee081', 'green'], ['#ff8ad8', 'pink'], ['#f4f1ea', 'cream']], WINDS = { calm:0, breezy:1, gusty:1.8 };
+  var TAGS = ['bsdzombiekiller', 'devino001gaming', 'CHEEZEETIGER', 'gravyboat', 'ricochet_reggie', 'BigTuna', 'shellshock_sam', 'MortarMaude', 'dirtnap', 'howitzer_hank', 'lag_switch', 'kevin', 'afk_andy', 'ThunderChonk', 'NoScopeNancy', 'CtrlAltDefeat', 'toasterbath', 'pickle.exe', 'mildly_ok', 'BUCKSHOT_BETTY', 'wind_is_a_lie', 'CraterCarl', 'sn1pes', 'the_floor_is_lava'];   /* cpu gamertags, Rounds style: each game deals three, a cpu keeps its name for the whole match */
   function saveSet(){ try { localStorage.setItem('tigos.tanks', JSON.stringify(SET)); } catch(e){} }
 
   /* ---------- the Blender model. MODELS.tank holds the parsed glTF scene once it arrives (null before, and for good if the fetch fails, e.g.
@@ -64,8 +66,11 @@
    renderer (part 02) reads these arrays every frame and never writes them; the only additions are the event queue EV (fire, boom, hit, buy...)
    the picture and the synth consume, and terDirty, set when a crater changed the ground. Opens tanks(); part 03 closes it. */
   function tanks(api){
-    var g = {}, ter, me, foes, shots, wind, phase, turn, round, score, coins, aimDrag, cpuT, msg, msgT, parts, smoke, rings, debris, shake, timers, held, upg, shopSel, nukeArmed, fuel, fuelMax, kills, D, diffSel, EV = [], terDirty = true, t = 0, R = null, snd = Synth();
-    var G = 230, FOE_COL = ['#ff6b6b', '#ffa94d', '#c084fc'];
+    var g = {}, ter, me, foes, shots, wind, phase, turn, round, score, coins, aimDrag, cpuT, msg, msgT, parts, smoke, rings, debris, shake, timers, held, upg, shopSel, nukeArmed, fuel, fuelMax, kills, D, diffSel, foeNames = [], lastShot = null, EV = [], terDirty = true, t = 0, R = null, snd = Synth();
+    var G = 230, FOE_COL = ['#ff6b6b', '#ffa94d', '#c084fc', '#5ab4ff', '#7ee081'];   /* cpu paint, skipping whatever you picked */
+    function windScale(){ return WINDS[SET.wind] === undefined ? 1 : WINDS[SET.wind]; }
+    function cpuCount(){ return SET.cpus > 0 ? SET.cpus : Math.min(3, 1 + Math.floor((round - 1) / 2)); }
+    function dealNames(){ var pool = TAGS.slice(), out = []; while(out.length < 3 && pool.length) out.push(pool.splice(Math.floor(Math.random()*pool.length), 1)[0]); return out; }
     var DIFFS = [
       { id:'easy', name:'Easy', desc:'Sleepy gunners, 16 fuel, weak shells', err:.38, dmg:.7, fuel:16, coin:1, hp:80, col:'#8fd46a' },
       { id:'normal', name:'Normal', desc:'A fair fight, 10 fuel', err:.28, dmg:1, fuel:10, coin:1, hp:100, col:'#ffd166' },
@@ -73,7 +78,7 @@
       { id:'legendary', name:'Legendary', desc:'Dead eyes, 6 fuel, armored hulls, 50% more coins', err:.10, dmg:1.6, fuel:6, coin:1.5, hp:150, col:'#ff5f57' } ];
     var SHOP = [
       { id:'repair', name:'Repair kit', desc:'Patch the hull back to full', cost:60 },
-      { id:'fuel', name:'Fuel tank', desc:'+12 fuel every turn', cost:140, max:4 },
+      { id:'fuel', name:'Fuel tank', desc:'+12 fuel every round', cost:140, max:4 },
       { id:'armor', name:'Armor plating', desc:'+30 max hull, repaired now', cost:220, max:3 },
       { id:'big', name:'Heavy shells', desc:'Bigger craters, 50% more damage', cost:320, max:1 },
       { id:'guide', name:'Targeting computer', desc:'Shows the arc while you aim', cost:380, max:1 },
@@ -83,11 +88,12 @@
     function genTer(){ ter = []; var a = rnd(0, 6), b = rnd(0, 6), c2 = rnd(0, 6); for(var x = 0; x < W; x++){ var y = H*.62 + Math.sin(x/90 + a)*28 + Math.sin(x/37 + b)*12 + Math.sin(x/160 + c2)*40; ter.push(clamp(y, H*.35, H*.9)); } for(var s = 0; s < 2; s++) for(var i = 1; i < W - 1; i++) ter[i] = (ter[i-1] + ter[i] + ter[i+1]) / 3; terDirty = true; emit('terrain'); }
     function ground(t){ t.y = ter[Math.round(clamp(t.x, 0, W - 1))]; }
     function say(s){ msg = s; msgT = 2.2; }
-    g.reset = function(){ round = 1; score = 0; coins = 0; kills = 0; api.score(0); upg = { repair:0, fuel:0, armor:0, big:0, guide:0, double:0, nuke:0 }; me = { hp:100, max:100, ang:45, pow:60, col:'#63e6be', x:80, y:0, name:'you' }; D = DIFFS[1]; diffSel = 1; genTer(); ground(me); foes = []; shots = []; parts = []; smoke = []; rings = []; debris = []; timers = []; shake = 0; wind = 0; held = {}; nukeArmed = false; refuel(); turn = -1; msg = ''; msgT = 0; phase = 'diff'; shopSel = 0; api.status('choose a difficulty  \u00b7  up/down, space starts'); emit('reset'); if(R) R.reset(); };
+    g.reset = function(){ round = 1; score = 0; coins = 0; kills = 0; api.score(0); upg = { repair:0, fuel:0, armor:0, big:0, guide:0, double:0, nuke:0 }; me = { hp:100, max:100, ang:45, pow:60, col:PALETTE[SET.color][0], x:80, y:0, name:'you' }; D = DIFFS[1]; diffSel = 1; foeNames = dealNames(); lastShot = null; genTer(); ground(me); foes = []; shots = []; parts = []; smoke = []; rings = []; debris = []; timers = []; shake = 0; wind = 0; held = {}; nukeArmed = false; refuel(); turn = -1; msg = ''; msgT = 0; phase = 'diff'; shopSel = 0; api.status('choose a difficulty  \u00b7  up/down, space starts'); emit('reset'); if(R) R.reset(); };
     function pickDiff(i){ D = DIFFS[i]; diffSel = i; newRound(); say(D.name+' \u00b7 round 1  \u00b7  wind '+windTxt()); emit('start'); }
-    function newRound(){ genTer(); me.x = ri(50, 120); ground(me); me.dead = false; me.hp = Math.min(me.max, me.hp + 25); var n = Math.min(3, 1 + Math.floor((round - 1) / 2)); foes = []; for(var i = 0; i < n; i++){ var f = { hp:D.hp, max:D.hp, ang:135, pow:60, col:FOE_COL[i], err:Math.max(.04, D.err - round*.03 - i*.02), x:Math.round(W*(.5 + (i + 1) / (n + 1) * .46)), name:'cpu '+(i + 1), fuelMax:D.fuel + round*2, fuel:D.fuel + round*2, drive:null, id:i }; ground(f); foes.push(f); }
-      shots = []; parts = []; smoke = []; rings = []; debris = []; timers = []; shake = 0; wind = ri(-25, 25); aimDrag = null; cpuT = 0; held = {}; nukeArmed = false; phase = 'play'; turn = -1; refuel(); say('round '+round+'  \u00b7  '+n+' enem'+(n > 1 ? 'ies' : 'y')+'  \u00b7  wind '+windTxt()); status(); emit('round'); }
-    function refuel(){ fuelMax = D.fuel + upg.fuel*12; fuel = fuelMax; }
+    function newRound(){ genTer(); me.x = ri(50, 120); ground(me); me.dead = false; me.hp = Math.min(me.max, me.hp + 25); var n = cpuCount(), cols = FOE_COL.filter(function(c){ return c.toLowerCase() !== me.col.toLowerCase(); }); foes = []; for(var i = 0; i < n; i++){ var f = { hp:D.hp, max:D.hp, ang:135, pow:60, col:cols[i], err:Math.max(.04, D.err - round*.03 - i*.02), x:Math.round(W*(.5 + (i + 1) / (n + 1) * .46)), name:foeNames[i] || 'cpu '+(i + 1), fuelMax:D.fuel + round*2, fuel:D.fuel + round*2, drive:null, id:i }; ground(f); foes.push(f); }
+      shots = []; parts = []; smoke = []; rings = []; debris = []; timers = []; shake = 0; wind = Math.round(ri(-25, 25)*windScale()); aimDrag = null; cpuT = 0; held = {}; nukeArmed = false; phase = 'play'; turn = -1; refuel(); say('round '+round+'  \u00b7  '+n+' enem'+(n > 1 ? 'ies' : 'y')+'  \u00b7  wind '+windTxt()); status(); emit('round'); }
+    function refuel(){ fuelMax = D.fuel + upg.fuel*12; fuel = fuelMax; }   /* once a round, at the start of it: fuel is a budget for the whole round, yours and the cpus' alike */
+    function drive(dx){ if(fuel <= 0 || !dx) return false; var nx = clamp(me.x + dx, 16, W - 16), used = Math.abs(nx - me.x)/4; if(used > fuel){ nx = me.x + (nx - me.x)*(fuel/used); used = fuel; } if(nx === me.x) return false; fuel -= used; me.dir = nx > me.x ? 1 : -1; me.x = nx; ground(me); me.moving = true; if(Math.random() < .17) smoke.push({ x:me.x - me.dir*14, y:me.y - 4, r:rnd(2, 4), vx:-me.dir*20, vy:rnd(-20, -8), t:0, life:rnd(.4, .7) }); return true; }
     function windTxt(){ return (wind > 0 ? '\u2192 ' : wind < 0 ? '\u2190 ' : '')+Math.abs(wind); }
     function status(){ api.status(phase === 'diff' ? 'choose a difficulty  \u00b7  up/down, space starts' : phase === 'shop' ? 'shop  \u00b7  '+coins+' coins' : 'angle '+Math.round(me.ang)+'\u00b0  power '+Math.round(me.pow)+'  fuel '+Math.ceil(fuel)+'  \u00b7  '+coins+' coins'); }
     function myTurn(){ return phase === 'play' && turn === -1 && !shots.length && !me.dead; }
@@ -102,13 +108,16 @@
       var m = { ArrowLeft:'L', a:'L', A:'L', ArrowRight:'R', d:'R', D:'R', ArrowUp:'U', ArrowDown:'D', w:'PU', W:'PU', s:'PD', S:'PD' }[k]; if(!m) return false; held[m] = down; return true; };
     /* drag-to-aim, in field pixels (part 03 unprojects the pointer onto the field plane first): a press starts a drag, a real move from the press
        point aims the barrel at the pointer with power from the distance, letting go fires. A plain click never fires. */
-    function aimDown(x, y){ if(myTurn()) aimDrag = { moved:false, x0:x, y0:y }; }
-    function aimMove(x, y){ if(!aimDrag || !myTurn()) return; if(aimDrag.moved || Math.hypot(x - aimDrag.x0, y - aimDrag.y0) > 6){ aimDrag.moved = true; var dx = x - me.x, dy = (me.y - 16) - y; if(Math.hypot(dx, dy) > 8){ me.ang = clamp(Math.atan2(dy, dx)*180/Math.PI, 0, 180); me.pow = clamp(Math.hypot(dx, dy)/2.4, 15, 100); status(); } } }
-    function aimUp(){ if(!aimDrag) return; var mv = aimDrag.moved; aimDrag = null; if(mv && myTurn()) fire(me); }
+    /* a press within AIM_R of your tank starts an aim drag; a press anywhere else is a drive drag: the tank follows the finger sideways, on the round's fuel. Neither fires on a plain tap. */
+    var AIM_R = 60;
+    function aimDown(x, y){ if(myTurn()) aimDrag = { moved:false, x0:x, y0:y, lx:x, mode:Math.hypot(x - me.x, y - (me.y - 12)) <= AIM_R ? 'aim' : 'drive' }; }
+    function aimMove(x, y){ if(!aimDrag || !myTurn()) return; if(aimDrag.mode === 'drive'){ var ddx = x - aimDrag.lx; aimDrag.lx = x; if(Math.abs(x - aimDrag.x0) > 4){ aimDrag.moved = true; if(drive(ddx)){ aimDrag.drv = t; status(); } } return; }
+      if(aimDrag.moved || Math.hypot(x - aimDrag.x0, y - aimDrag.y0) > 6){ aimDrag.moved = true; var dx = x - me.x, dy = (me.y - 16) - y; if(Math.hypot(dx, dy) > 8){ me.ang = clamp(Math.atan2(dy, dx)*180/Math.PI, 0, 180); me.pow = clamp(Math.hypot(dx, dy)/2.4, 15, 100); status(); } } }
+    function aimUp(){ if(!aimDrag) return; var mv = aimDrag.moved && aimDrag.mode === 'aim'; aimDrag = null; me.moving = false; if(mv && myTurn()) fire(me); }
     function fire(t){ if(shots.length) return; var big = t === me && upg.big > 0, nuke = t === me && nukeArmed && upg.nuke > 0; if(nuke){ upg.nuke--; nukeArmed = false; }
       var angs = t === me && upg.double > 0 && !nuke ? [t.ang - 2.5, t.ang + 2.5] : [t.ang];
       angs.forEach(function(ang){ var a = ang*Math.PI/180, v = t.pow*5.2; shots.push({ x:t.x + Math.cos(a)*18, y:t.y - 16 - Math.sin(a)*18, vx:Math.cos(a)*v, vy:-Math.sin(a)*v, from:t, trail:[], t:0, big:big, nuke:nuke }); });
-      t.recoil = 1; emit('fire', { who:t, nuke:nuke, big:big }); snd.fire(nuke); if(t === me) status(); }
+      t.recoil = 1; lastShot = t; emit('fire', { who:t, nuke:nuke, big:big }); snd.fire(nuke); if(t === me) status(); }
     function boom(x, y, size, col, hull){ var n = Math.round(16*size); for(var i = 0; i < n; i++){ var a = rnd(0, 7), sp = rnd(60, 220)*size; parts.push({ x:x, y:y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 80*size, t:0, life:rnd(.35, .8), col:Math.random() < .5 ? '#ffd166' : (col || '#ff8a00') }); }
       for(var k = 0; k < Math.round(7*size); k++) smoke.push({ x:x + rnd(-8, 8)*size, y:y + rnd(-8, 8)*size, r:rnd(6, 12)*size, vx:rnd(-20, 20), vy:rnd(-50, -15), t:0, life:rnd(.9, 1.6)*Math.sqrt(size) });
       rings.push({ x:x, y:y, t:0, life:.45*Math.sqrt(size), r:30*size }); rings.push({ x:x, y:y, t:0, life:.18, r:14*size, flash:true }); shake = Math.min(24, shake + 5*size); emit('boom', { x:x, y:y, size:size, hull:!!hull }); snd.boom(size, hull); }
@@ -119,14 +128,16 @@
     function shopPick(row){ if(row === SHOP.length){ phase = 'play'; snd.ui(true); newRound(); return; } var it = SHOP[row];
       if(it.max && upg[it.id] >= it.max){ say('already maxed'); snd.ui(false); return; } if(it.id === 'repair' && me.hp >= me.max){ say('hull is already full'); snd.ui(false); return; } if(coins < it.cost){ say('not enough coins ('+it.cost+')'); snd.ui(false); return; }
       coins -= it.cost; upg[it.id]++; if(it.id === 'repair') me.hp = me.max; if(it.id === 'armor'){ me.max += 30; me.hp = me.max; } say(it.name+' bought'); status(); snd.coin(2); emit('buy', { id:it.id }); }
-    function cpuAim(f){ var dx = me.x - f.x, dy = f.y - me.y, ang = rnd(112, 152), a = ang*Math.PI/180, Rg = Math.abs(dx) + dy*.6; var v = Math.sqrt(Math.abs(Rg*G / Math.sin(2*a))) || 200; v -= wind*.9; v *= 1 + rnd(-f.err, f.err); f.ang = ang; f.pow = clamp(v/5.2, 20, 100); fire(f); }
+    /* a cpu picks a target among every other live tank, you included: the weakest hull (to the nearest tenth), nearest neighbour breaking the tie, so cpus shell each other as readily as you */
+    function cpuTarget(f){ var c = [me].concat(foes).filter(function(t){ return t !== f && !t.dead; }); if(!c.length) return me; var r = function(t){ return Math.round(t.hp/t.max*10); }; c.sort(function(a, b){ return r(a) - r(b) || Math.abs(a.x - f.x) - Math.abs(b.x - f.x); }); return c[0]; }
+    function cpuAim(f){ var tg = cpuTarget(f), dx = tg.x - f.x, dy = f.y - tg.y, ang = dx < 0 ? rnd(112, 152) : rnd(28, 68), a = ang*Math.PI/180, Rg = Math.abs(dx) + dy*.6; var v = Math.sqrt(Math.abs(Rg*G / Math.sin(2*a))) || 200; v -= wind*.9*(dx < 0 ? -1 : 1); v *= 1 + rnd(-f.err, f.err); f.ang = ang; f.pow = clamp(v/5.2, 20, 100); f.target = tg; fire(f); }
     function endTurn(){
-      var died = false; [me].concat(foes).forEach(function(t){ if(t.hp <= 0 && !t.dead){ wreck(t); died = true; if(t !== me){ kills++; var ck = Math.round(80*D.coin); coins += ck; score += 300; api.score(score); say(t.name+' destroyed  +'+ck+' coins'); snd.coin(3); } } });
+      var died = false; [me].concat(foes).forEach(function(t){ if(t.hp <= 0 && !t.dead){ wreck(t); died = true; if(t !== me){ if(lastShot === me){ kills++; var ck = Math.round(80*D.coin); coins += ck; score += 300; api.score(score); say(t.name+' destroyed  +'+ck+' coins'); snd.coin(3); } else say(t.name+' destroyed by '+(lastShot ? lastShot.name : 'the blast')); } } });
       if(me.dead){ phase = 'dead'; snd.lose(); timers.push({ t:1.8, fn:function(){ api.over(round > 3 ? 'Outgunned after '+(round - 1)+' rounds won' : 'Outgunned'); } }); return; }
       if(foes.every(function(f){ return f.dead; })){ var bonus = Math.round((120 + round*25 + Math.floor(me.hp/5))*D.coin); coins += bonus; score += 500 + me.hp*3; api.score(score); round++; say('round won  +'+bonus+' coins'); phase = 'won'; snd.win(); timers.push({ t:1.4, fn:function(){ phase = 'shop'; shopSel = 0; status(); emit('shop'); } }); return; }
       var order = [-1].concat(foes.map(function(f, i){ return i; })), cur = order.indexOf(turn), next = turn;
       for(var k = 1; k <= order.length; k++){ var cand = order[(cur + k) % order.length]; if(cand === -1 || !foes[cand].dead){ next = cand; break; } }
-      turn = next; cpuT = 0; if(turn === -1){ wind = clamp(wind + ri(-8, 8), -30, 30); refuel(); say('your turn  \u00b7  wind '+windTxt()); status(); } emit('turn', { turn:turn }); }
+      turn = next; cpuT = 0; if(turn === -1){ var wm = windScale(); wind = Math.round(clamp(wind + ri(-8, 8)*wm, -30*wm, 30*wm)); say('your turn  \u00b7  wind '+windTxt()); status(); } emit('turn', { turn:turn }); }
     g.update = function(dt){
       t += dt; if(msgT > 0) msgT -= dt; if(shake > 0) shake = Math.max(0, shake - dt*40);
       for(var i = timers.length - 1; i >= 0; i--){ timers[i].t -= dt; if(timers[i].t <= 0){ var fn = timers[i].fn; timers.splice(i, 1); fn(); } }
@@ -139,10 +150,11 @@
       if(phase !== 'play'){ snd.drive(false); return; }
       if(myTurn()){ var moved = false;
         if(held.U) me.ang = clamp(me.ang + 40*dt, 0, 180); if(held.D) me.ang = clamp(me.ang - 40*dt, 0, 180); if(held.PU) me.pow = clamp(me.pow + 30*dt, 15, 100); if(held.PD) me.pow = clamp(me.pow - 30*dt, 15, 100);
-        if((held.L || held.R) && fuel > 0){ var dx = (held.R ? 1 : -1)*42*dt, nx = clamp(me.x + dx, 16, W - 16), used = Math.abs(nx - me.x)/4; if(used > fuel){ nx = me.x + (nx - me.x)*(fuel/used); used = fuel; } fuel -= used; me.x = nx; ground(me); moved = true; me.moving = true; me.dir = held.R ? 1 : -1; driving = true; if(Math.random() < dt*10) smoke.push({ x:me.x - me.dir*14, y:me.y - 4, r:rnd(2, 4), vx:-me.dir*20, vy:rnd(-20, -8), t:0, life:rnd(.4, .7) }); }
+        if((held.L || held.R) && fuel > 0){ if(drive((held.R ? 1 : -1)*42*dt)){ moved = true; driving = true; } }
+        if(aimDrag && aimDrag.mode === 'drive' && t - (aimDrag.drv || -9) < .15){ driving = true; me.moving = true; }   /* a drive drag moves the tank between frames; the tracks keep turning while the finger does */
         if(held.U || held.D || held.PU || held.PD || moved) status(); }
       else if(turn >= 0 && !shots.length){ var cf = foes[turn]; cpuT += dt;
-        if(!cf.drive){ cf.fuel = cf.fuelMax; var away = Math.abs(me.x - cf.x) < 170, dir = away ? (cf.x > me.x ? 1 : -1) : (Math.random() < .5 ? -1 : 1), want = Math.min(cf.fuel, rnd(3, cf.fuel)); cf.drive = { dir:dir, left:want*4 }; }
+        if(!cf.drive){ var tg = cpuTarget(cf), away = Math.abs(tg.x - cf.x) < 170, dir = away ? (cf.x > tg.x ? 1 : -1) : (Math.random() < .5 ? -1 : 1), want = Math.min(cf.fuel, rnd(2, Math.max(3, cf.fuelMax/2.5))); cf.drive = { dir:dir, left:want*4 }; }   /* the tank is refuelled once a round, so it rations: a third or so of the tank each turn */
         if(cpuT > .25 && cf.drive.left > 0 && cf.fuel > 0){ var step = Math.min(cf.drive.left, 42*dt), nx2 = clamp(cf.x + cf.drive.dir*step, W*.42, W - 16), blocked = foes.some(function(o){ return o !== cf && !o.dead && Math.abs(o.x - nx2) < 30; }) || Math.abs(nx2 - me.x) < 60; if(blocked || nx2 === cf.x){ cf.drive.left = 0; } else { var used2 = Math.abs(nx2 - cf.x)/4; if(used2 > cf.fuel){ nx2 = cf.x + (nx2 - cf.x)*(cf.fuel/used2); used2 = cf.fuel; } cf.fuel -= used2; cf.drive.left -= Math.abs(nx2 - cf.x); cf.x = nx2; ground(cf); cf.moving = true; cf.dir = cf.drive.dir; driving = true; if(Math.random() < dt*10) smoke.push({ x:cf.x - cf.drive.dir*14, y:cf.y - 4, r:rnd(2, 4), vx:-cf.drive.dir*20, vy:rnd(-20, -8), t:0, life:rnd(.4, .7) }); } }
         if(cpuT > 1.3 || (cpuT > .9 && cf.drive.left <= 0)){ cf.drive = null; cpuAim(cf); cpuT = 0; } }
       snd.drive(driving, driving && me.moving ? 1 : .6);
@@ -267,7 +279,7 @@
       function frame(dt){ renderer.info.reset();
         if(terDirty){ refreshTerrain(); terDirty = false; }
         for(var e = 0; e < EV.length; e++){ var ev = EV[e];
-          if(ev.type === 'reset' || ev.type === 'round') rebuildViews();
+          if(ev.type === 'reset' || ev.type === 'round' || ev.type === 'look') rebuildViews();   /* look: a new paint picked on the setup card */
           else if(ev.type === 'terrain') scorch.fill(0);
           else if(ev.type === 'crater'){ for(var i = Math.max(0, Math.floor(ev.x - ev.r)); i < Math.min(W, ev.x + ev.r); i++){ var d = Math.abs(i - ev.x)/ev.r; scorch[i] = Math.min(1, scorch[i] + (1 - d)*(1 - d)*1.1); } }
           else if(ev.type === 'wreck'){ views.forEach(function(v){ if(v.t === ev.who) setBody(v); }); }
@@ -317,16 +329,23 @@
       var diffRows = DIFFS.map(function(d, i){ return '<li><button type="button" data-diff="'+i+'" style="--c:'+d.col+'"><i></i><span class="tk-it"><b>'+(i + 1)+'  '+esc(d.name)+'</b><small>'+esc(d.desc)+'</small></span></button></li>'; }).join('');
       var shopRows = SHOP.concat([{ id:'go', name:'Next round', desc:'Roll out', cost:0 }]).map(function(it, i){ return '<li><button type="button" data-shop="'+i+'" data-id="'+it.id+'"><span class="tk-it"><b data-name>'+esc(it.name)+'</b><small>'+esc(it.desc)+'</small></span><span class="tk-cost"><b data-cost></b><small data-need></small></span></button></li>'; }).join('');
       menuEl = document.createElement('div'); menuEl.className = 'tk-menu gm-ui';
-      menuEl.innerHTML = '<div class="tk-panel" data-panel="diff"><h2>Tanks</h2><p class="tk-sub">Choose your difficulty</p><ul class="tk-list tk-diffs">'+diffRows+'</ul>'+
-          '<div class="tk-set"><label><span>Graphics</span><select data-set="gfx">'+GFX.map(function(k){ return '<option value="'+k+'"'+(k === SET.gfx ? ' selected' : '')+'>'+k+'</option>'; }).join('')+'</select></label><label><span>Volume</span><input type="range" data-set="vol" min="0" max="1" step=".05" value="'+SET.vol+'"><output>'+Math.round(SET.vol*100)+'%</output></label></div>'+
-          '<p class="tk-foot" data-difffoot></p></div>'+
+      var swatches = PALETTE.map(function(q, i){ return '<button type="button" data-col="'+i+'" style="--c:'+q[0]+'" aria-label="'+q[1]+'" title="'+q[1]+'"></button>'; }).join(''), cpuOpts = [[0, 'more as you win'], [1, '1'], [2, '2'], [3, '3']].map(function(q){ return '<button type="button" data-cpus="'+q[0]+'">'+q[1]+'</button>'; }).join('');
+      menuEl.innerHTML = '<div class="tk-panel" data-panel="diff"><h2>Tanks</h2><p class="tk-sub">Set up the battle</p>'+
+          '<div class="tk-row"><span class="tk-lab">Your tank</span><div class="tk-swatches">'+swatches+'</div></div><div class="tk-row"><span class="tk-lab">Opponents</span><div class="tk-opts">'+cpuOpts+'</div></div>'+
+          '<ul class="tk-list tk-diffs">'+diffRows+'</ul>'+
+          '<div class="tk-set"><label><span>Wind</span><select data-set="wind">'+['calm', 'breezy', 'gusty'].map(function(k){ return '<option value="'+k+'"'+(k === SET.wind ? ' selected' : '')+'>'+k+'</option>'; }).join('')+'</select></label><label><span>Graphics</span><select data-set="gfx">'+GFX.map(function(k){ return '<option value="'+k+'"'+(k === SET.gfx ? ' selected' : '')+'>'+k+'</option>'; }).join('')+'</select></label><label><span>Volume</span><input type="range" data-set="vol" min="0" max="1" step=".05" value="'+SET.vol+'"><output>'+Math.round(SET.vol*100)+'%</output></label></div>'+
+          '<button type="button" class="tk-play" data-play>Roll out</button><p class="tk-foot" data-difffoot></p></div>'+
         '<div class="tk-panel" data-panel="shop" hidden><h2 data-shoptitle>Round won</h2><p class="tk-coins" data-shopcoins>\u25c6  0 coins to spend</p><ul class="tk-list tk-shop">'+shopRows+'</ul><p class="tk-shopmsg" data-shopmsg></p><p class="tk-foot" data-shopfoot></p></div>';
       api.stage.appendChild(menuEl);
       ['difffoot', 'shoptitle', 'shopcoins', 'shopmsg', 'shopfoot'].forEach(function(k){ hud[k] = menuEl.querySelector('[data-'+k+']'); }); hud.diffPanel = menuEl.querySelector('[data-panel="diff"]'); hud.shopPanel = menuEl.querySelector('[data-panel="shop"]');
-      hud.difffoot.textContent = api.touch ? 'tap to pick, tap again to roll out' : 'up/down or 1-4 pick, space rolls out'; hud.shopfoot.textContent = api.touch ? 'tap to pick, tap again to buy' : 'up/down pick, space buys or continues';
-      hud.hint.textContent = api.touch ? 'drag from your tank to aim, release to fire. Pad drives and tunes' : 'left/right drive (fuel), up/down angle, w/s power, space fires';
-      menuEl.addEventListener('click', function(e){ var b = e.target.closest('button'); if(!b) return; if(b.hasAttribute('data-diff')){ var di = +b.getAttribute('data-diff'); if(phase !== 'diff') return; if(di === diffSel) pickDiff(di); else { diffSel = di; snd.ui(true); } } else if(b.hasAttribute('data-shop')){ var si = +b.getAttribute('data-shop'); if(phase !== 'shop') return; if(si === shopSel) shopPick(si); else { shopSel = si; snd.ui(true); } } api.stage.focus({ preventScroll:true }); });
-      var onSet = function(e){ var el = e.target.closest('[data-set]'); if(!el) return; var k = el.getAttribute('data-set'); if(k === 'gfx'){ SET.gfx = el.value; } else if(k === 'vol'){ SET.vol = +el.value; var o = el.parentNode.querySelector('output'); if(o) o.textContent = Math.round(SET.vol*100)+'%'; } saveSet(); if(R) R.applySettings(); };
+      hud.difffoot.textContent = api.touch ? 'tap a colour, a cpu count and a difficulty, then roll out' : 'up/down or 1-4 pick the difficulty, space rolls out'; hud.shopfoot.textContent = api.touch ? 'tap to pick, tap again to buy' : 'up/down pick, space buys or continues';
+      hud.hint.textContent = api.touch ? 'press on your tank and drag to aim, let go to fire. Drag anywhere else to drive (one tank of fuel a round)' : 'left/right drive (one tank of fuel a round), up/down angle, w/s power, space fires';
+      hud.nuke.addEventListener('click', function(){ if(myTurn() && upg.nuke > 0){ nukeArmed = !nukeArmed; say(nukeArmed ? 'nuke armed' : 'nuke stowed'); snd.ui(nukeArmed); } });
+      menuEl.addEventListener('click', function(e){ var b = e.target.closest('button'); if(!b) return; if(b.hasAttribute('data-diff')){ var di = +b.getAttribute('data-diff'); if(phase !== 'diff') return; if(di === diffSel) pickDiff(di); else { diffSel = di; snd.ui(true); } }
+        else if(b.hasAttribute('data-play')){ if(phase === 'diff') pickDiff(diffSel); }
+        else if(b.hasAttribute('data-col')){ if(phase !== 'diff') return; SET.color = +b.getAttribute('data-col'); saveSet(); me.col = PALETTE[SET.color][0]; snd.ui(true); emit('look'); }
+        else if(b.hasAttribute('data-cpus')){ if(phase !== 'diff') return; SET.cpus = +b.getAttribute('data-cpus'); saveSet(); snd.ui(true); } else if(b.hasAttribute('data-shop')){ var si = +b.getAttribute('data-shop'); if(phase !== 'shop') return; if(si === shopSel) shopPick(si); else { shopSel = si; snd.ui(true); } } api.stage.focus({ preventScroll:true }); });
+      var onSet = function(e){ var el = e.target.closest('[data-set]'); if(!el) return; var k = el.getAttribute('data-set'); if(k === 'gfx'){ SET.gfx = el.value; } else if(k === 'wind'){ SET.wind = el.value; } else if(k === 'vol'){ SET.vol = +el.value; var o = el.parentNode.querySelector('output'); if(o) o.textContent = Math.round(SET.vol*100)+'%'; } saveSet(); if(R) R.applySettings(); };
       menuEl.addEventListener('input', onSet); menuEl.addEventListener('change', onSet);
     })();
     function setText(k, s){ if(last[k] !== s){ last[k] = s; hud[k].textContent = s; } }
@@ -335,7 +354,9 @@
     function drawHud(){
       var play = phase === 'play' || phase === 'won' || phase === 'dead', menu = phase === 'diff' || phase === 'shop'; if(last.hudOn !== play){ last.hudOn = play; hudEl.classList.toggle('on', play); }
       if(last.menuOn !== menu){ last.menuOn = menu; menuEl.hidden = !menu; } if(menu){ var sp = phase === 'shop'; if(last.shopOn !== sp){ last.shopOn = sp; hud.diffPanel.hidden = sp; hud.shopPanel.hidden = !sp; }
-        if(!sp){ if(last.diffSel !== diffSel){ last.diffSel = diffSel; [].forEach.call(menuEl.querySelectorAll('[data-diff]'), function(b, i){ b.classList.toggle('sel', i === diffSel); }); } }
+        if(!sp){ if(last.diffSel !== diffSel){ last.diffSel = diffSel; [].forEach.call(menuEl.querySelectorAll('[data-diff]'), function(b, i){ b.classList.toggle('sel', i === diffSel); }); }
+          if(last.colSel !== SET.color){ last.colSel = SET.color; [].forEach.call(menuEl.querySelectorAll('[data-col]'), function(b, i){ b.classList.toggle('sel', i === SET.color); }); }
+          if(last.cpuSel !== SET.cpus){ last.cpuSel = SET.cpus; [].forEach.call(menuEl.querySelectorAll('[data-cpus]'), function(b){ b.classList.toggle('sel', +b.getAttribute('data-cpus') === SET.cpus); }); } }
         else { setText('shoptitle', 'Round '+(round - 1)+' won'); setText('shopcoins', '\u25c6  '+coins+' coins to spend'); setText('shopmsg', msgT > 0 ? msg : '');
           var rows = menuEl.querySelectorAll('[data-shop]'); for(var i = 0; i < rows.length; i++){ var b = rows[i], it = i === SHOP.length ? null : SHOP[i], owned = it ? (upg[it.id] || 0) : 0, maxed = it && it.max && owned >= it.max, can = !it || (!maxed && coins >= it.cost), key = [i === shopSel, owned, maxed, can, it ? Math.max(0, it.cost - coins) : 0].join('|');
             if(b.getAttribute('data-k') === key) continue; b.setAttribute('data-k', key); b.classList.toggle('sel', i === shopSel); b.classList.toggle('off', !can); b.classList.toggle('maxed', !!maxed);
@@ -343,7 +364,7 @@
             b.querySelector('[data-cost]').textContent = !it ? '\u2192' : maxed ? 'maxed' : it.cost+' coins'; b.querySelector('[data-need]').textContent = it && !maxed && !can ? 'need '+(it.cost - coins)+' more' : ''; } } }
       if(!play){ setText('msg', ''); return; }   /* the shop and the card carry their own message line; the HUD's never bleeds through */
       setText('aim', Math.round(me.ang)+'\u00b0  '+Math.round(me.pow)+'%'); setW('fuelbar', hud.fuelbar, Math.round(clamp(fuel/fuelMax, 0, 1)*100)); var lowF = fuel <= fuelMax*.3; if(last.lowF !== lowF){ last.lowF = lowF; hud.fuelbar.classList.toggle('low', lowF); } setText('fuel', 'fuel '+Math.ceil(fuel));
-      var nk = upg.nuke > 0 ? (nukeArmed ? 'NUKE ARMED' : 'nuke x'+upg.nuke+'  (N arms)') : ''; if(last.nk !== nk){ last.nk = nk; hud.nuke.hidden = !nk; hud.nuke.textContent = nk; hud.nuke.classList.toggle('armed', nukeArmed); }
+      var nk = upg.nuke > 0 ? (nukeArmed ? (api.touch ? 'NUKE ARMED  (tap to stow)' : 'NUKE ARMED') : 'nuke x'+upg.nuke+(api.touch ? '  (tap to arm)' : '  (N arms)')) : ''; if(last.nk !== nk){ last.nk = nk; hud.nuke.hidden = !nk; hud.nuke.textContent = nk; hud.nuke.classList.toggle('armed', nukeArmed); }
       setText('windtxt', 'wind '+Math.abs(wind)); if(last.wind !== wind){ last.wind = wind; hud.windbar.style.left = wind < 0 ? (50 + wind*1.6)+'%' : '50%'; hud.windbar.style.width = Math.abs(wind)*1.6+'%'; }
       setText('round', 'round '+round); setText('coins', coins+' coins');
       var m = msgT > 0 && phase !== 'shop' ? msg : ''; setText('msg', m); var mo = msgT > 0 ? Math.min(1, msgT) : 0; if(Math.abs((last.mo || 0) - mo) > .04){ last.mo = mo; hud.msg.style.opacity = mo; }
@@ -364,8 +385,8 @@
     g.pointer = function(type, x, y){ if(phase !== 'play' || !R) return; var p = R.unproject(x, y); if(type === 'down') aimDown(p.x, p.y); else if(type === 'move') aimMove(p.x, p.y); else if(type === 'up') aimUp(); };
     g.destroy = function(){ [hudEl, menuEl].forEach(function(el){ if(el && el.parentNode) el.parentNode.removeChild(el); }); snd.close(); if(R) R.dispose(); R = null; };
     /* ---- what the tests read ---- */
-    g.peek = function(){ return { turn:turn, phase:phase, shots:shots.length, meHp:me.hp, foes:foes.map(function(f){ return f.hp; }), round:round, wind:wind, ang:me.ang, pow:me.pow, fuel:fuel, fuelMax:fuelMax, coins:coins, upg:upg, x:me.x, y:me.y, shopSel:shopSel, diff:D.id, diffSel:diffSel, foeX:foes.map(function(f){ return Math.round(f.x); }), foeFuel:foes.map(function(f){ return +f.fuel.toFixed(1); }), foeFuelMax:foes.map(function(f){ return f.fuelMax; }), kills:kills, score:score, model:!!MODELS.tank, modelFailed:MODELS.failed.tank || null, soft:R ? R.soft() : null, gfx:SET.gfx }; };
-    g.dbg = { killFoes:function(){ foes.forEach(function(f){ f.hp = 0; }); }, coins:function(n){ coins = n; status(); }, diff:function(i){ if(phase === 'diff') pickDiff(i); }, fire:function(){ if(myTurn()) fire(me); }, aim:function(a, p){ me.ang = clamp(a, 0, 180); me.pow = clamp(p, 15, 100); status(); },
+    g.peek = function(){ return { turn:turn, phase:phase, shots:shots.length, meHp:me.hp, foes:foes.map(function(f){ return f.hp; }), round:round, wind:wind, ang:me.ang, pow:me.pow, fuel:fuel, fuelMax:fuelMax, coins:coins, upg:upg, x:me.x, y:me.y, shopSel:shopSel, diff:D.id, diffSel:diffSel, foeX:foes.map(function(f){ return Math.round(f.x); }), foeFuel:foes.map(function(f){ return +f.fuel.toFixed(1); }), foeFuelMax:foes.map(function(f){ return f.fuelMax; }), kills:kills, score:score, foeNames:foes.map(function(f){ return f.name; }), names:foeNames.slice(), foeCols:foes.map(function(f){ return f.col; }), meCol:me.col, opts:{ color:SET.color, cpus:SET.cpus, wind:SET.wind }, drag:aimDrag ? aimDrag.mode : null, targets:foes.map(function(f){ return f.target ? f.target.name : null; }), model:!!MODELS.tank, modelFailed:MODELS.failed.tank || null, soft:R ? R.soft() : null, gfx:SET.gfx }; };
+    g.dbg = { killFoes:function(){ foes.forEach(function(f){ f.hp = 0; }); }, hurt:function(i, hp){ if(foes[i]) foes[i].hp = hp; }, cpuTarget:function(i){ return foes[i] ? cpuTarget(foes[i]).name : null; }, fuelOf:function(n){ fuel = n; }, coins:function(n){ coins = n; status(); }, diff:function(i){ if(phase === 'diff') pickDiff(i); }, fire:function(){ if(myTurn()) fire(me); }, aim:function(a, p){ me.ang = clamp(a, 0, 180); me.pow = clamp(p, 15, 100); status(); },
       model:function(k, buf, cb){ parseModel(k, buf, cb); }, models:function(){ return { tank:!!MODELS.tank, failed:MODELS.failed }; }, tick:function(sec){ var n = Math.round((sec || 1)*60); for(var i = 0; i < n; i++) g.update(1/60); return t; },
       toScreen:function(sx, sy){ var p = R.project(wx(sx), wy(sy), 0); return { x:p.x/vw*W, y:p.y/vh*H }; },   /* field pixels to the framework's pointer units */
       unproject:function(x, y){ return R.unproject(x, y); }, views:function(){ return R.views().map(function(v){ return { name:v.t.name, model:v.model, dead:v.dead, yaw:+v.yaw.toFixed(2), tilt:+v.tilt.toFixed(3), barrel:v.barrel ? +v.barrel.rotation.z.toFixed(3) : null, x:+v.grp.position.x.toFixed(2), y:+v.grp.position.y.toFixed(2), meshes:(function(){ var n = 0; v.grp.traverse(function(o){ if(o.isMesh) n++; }); return n; })() }; }); },

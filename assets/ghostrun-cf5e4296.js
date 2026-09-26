@@ -62,7 +62,7 @@
   }
 /* tigOS arcade, Ghost Run part 01: the simulation, ported from the canvas game as is: three lanes, a unit depth z that every obstacle travels
    from 0 (the far end) to 1.08 (behind you) at `speed` per second with the runner at PZ = .86, jump and slide windows of .6 s, forks and one-way
-   turns that swap the hall theme at the midpoint of a 1.05 s doorway transition, a threat meter that a hit raises by half and time bleeds off,
+   turns that swap the hall theme at the midpoint of a 1.05 s doorway transition (the screen is black at that instant, so nothing pops), a threat meter that a hit raises by half and time bleeds off,
    candles worth ten, lightning, bats. The renderer (part 02) reads these every frame and never writes them; the only additions are the mode
    (a title card before the first run) and the event queue EV the picture and the synth consume. Opens ghosts(); part 03 closes it. */
   function ghosts(api){
@@ -82,12 +82,12 @@
     g.key = function(k, down){ if(!down) return false; if(mode === 'menu'){ if(k === 'Enter' || k === ' '){ start(); return true; } return false; } if(!alive) return false; if(k === 'm' || k === 'M'){ snd.toggle(); return true; } var d = isDir(k); if(!d) return false; if(turnT > 0) return true;
       if(d === 'L') lane = Math.max(0, lane - 1); if(d === 'R') lane = Math.min(2, lane + 1); if(d === 'U' && !jump && !slide){ jump = .6; snd.jump(); emit('jump'); } if(d === 'D' && !jump && !slide){ slide = .6; snd.slide(); emit('slide'); } return true; };
     function hit(){ if(stumble > 0) return; stumble = .55; threat += .5; speed = Math.max(.42, speed*.82); snd.hit(); emit('hit'); if(threat >= 1){ alive = false; snd.dead(); emit('dead'); api.over(dist > 2500 ? 'The ghosts caught up after a long run' : 'The ghosts got you'); } }
-    function turnHall(dir){ turnDir = dir; turnT = TURN_T; objs = []; quiet = 1.3; halls++; lane = dir < 0 ? 0 : 2; snd.door(); emit('turn', { dir:dir }); }   /* the runner heads INTO the chosen archway, the screen falls dark inside it, and the next hall swings in from the turn */
+    function turnHall(dir, one){ turnDir = dir; turnT = TURN_T; objs = []; quiet = 1.3; halls++; lane = dir < 0 ? 0 : 2; snd.door(); emit('turn', { dir:dir, one:!!one }); }   /* the runner heads INTO the chosen archway: the render keeps the wall and slides it past the camera, the screen falls dark inside it, and the next hall swings in from the turn */
     g.update = function(dt){
       if(mode === 'menu'){ t += dt; ghostBob += dt; flick += dt; dust.forEach(function(d){ d.y += dt*(.05 + d.s*.03); if(d.y > 1){ d.y = 0; d.x = Math.random(); } }); return; }
       if(!alive) return; t += dt; ghostBob += dt; speed = Math.min(1.7, speed + dt*.02); dist += speed*dt*60; tiles = (tiles + speed*dt*1.6) % 1; flick += dt; threat = Math.max(0, threat - dt*.11); if(stumble > 0) stumble -= dt;
       px += (lane - px)*Math.min(1, dt*12); if(jump > 0) jump -= dt; if(slide > 0) slide -= dt;
-      if(turnT > 0){ var was = turnT, mid = TURN_T*.55; turnT -= dt; if(was > mid && turnT <= mid){ theme = (theme + 1) % THEMES.length; px = 1; lane = 1; emit('theme', { theme:theme }); } }
+      if(turnT > 0){ var was = turnT, mid = TURN_T*.5; turnT -= dt; if(was > mid && turnT <= mid){ theme = (theme + 1) % THEMES.length; px = 1; lane = 1; emit('theme', { theme:theme }); } }
       lightT -= dt; if(lightT <= 0){ light = 1; lightT = rnd(4, 11); snd.thunder(); emit('light'); } light = Math.max(0, light - dt*2.2);
       dust.forEach(function(d){ d.y += dt*(.05 + d.s*.03); d.x += Math.sin(t*.8 + d.ph)*dt*.02; if(d.y > 1){ d.y = 0; d.x = Math.random(); } });
       batT -= dt; if(batT <= 0){ batT = rnd(5, 12); var bd = Math.random() < .5 ? 1 : -1; for(var bi = 0; bi < ri(2, 4); bi++) bats.push({ x:bd < 0 ? W + 20 + bi*30 : -20 - bi*30, y:rnd(20, H*.34*.7), vx:bd*rnd(140, 220), ph:rnd(0, 7) }); snd.bats(); emit('bats'); }
@@ -96,7 +96,7 @@
       if(quiet <= 0){ spawnT -= dt; if(forkT <= 0 && !objs.some(function(o){ return o.k === 'fork' || o.k === 'turn'; })){ fork(); forkT = rnd(8, 13); } else if(spawnT <= 0){ spawn(); spawnT = clamp(1.05 - speed*.32, .38, 1.05); } }
       for(var i = objs.length - 1; i >= 0; i--){ var o = objs[i]; o.z += speed*dt; if(o.z > 1.08){ objs.splice(i, 1); continue; }
         if(!o.hit && o.z > PZ - .03 && o.z < PZ + .03){
-          if(o.k === 'fork' || o.k === 'turn'){ o.hit = true; if(o.k === 'fork'){ if(lane === 1){ hit(); if(!alive) return; turnHall(Math.random() < .5 ? -1 : 1); } else turnHall(lane === 0 ? -1 : 1); } else turnHall(o.dir); break; }
+          if(o.k === 'fork' || o.k === 'turn'){ o.hit = true; if(o.k === 'fork'){ if(lane === 1){ hit(); if(!alive) return; turnHall(Math.random() < .5 ? -1 : 1); } else turnHall(lane === 0 ? -1 : 1); } else turnHall(o.dir, true); break; }
           if(Math.abs(o.l - px) < .5){ o.hit = true;
             if(o.k === 'candle'){ candles++; score += 10; o.z = 9; snd.candle(); emit('candle', { l:o.l }); }
             else if((o.k === 'low' && jump > 0) || (o.k === 'high' && slide > 0)) {}
@@ -109,7 +109,7 @@
    far end in the fog) whose textures scroll with the run, sconces and portraits cycling down the walls, four pooled candle lights following the
    nearest sconces so the light count never changes. Every obstacle kind has a pool of Blender props (boxy stand-ins until the glb lands),
    three ghosts rise behind you with the threat, bats cross overhead, dust floats, lightning flashes the window and the room. */
-    var LANE_W = 1.5, HALL_W = 5.4, HALL_H = 4.6, DEPTH = 40, frameDt = 0, vw = 2, vh = 2, soft = false, hudEl = null, menuEl = null, last = {}, tmpV = null, scrollZ = 0;
+    var LANE_W = 1.5, HALL_W = 5.4, HALL_H = 4.6, DEPTH = 40, frameDt = 0, vw = 2, vh = 2, soft = false, hudEl = null, menuEl = null, last = {}, tmpV = null, scrollZ = 0, door = null, darkK = 0;   /* door: the wall being run through ({ dir, one }); darkK: how black the doorway blackout is this frame (the HUD paints it) */
     function lx(l){ return (l - 1)*LANE_W; } function dz(z){ return (z - PZ)*DEPTH; }
     function Picture(){
       var THREE = window.THREE; tmpV = new THREE.Vector3();
@@ -201,14 +201,14 @@
       var P = { scene:scene, camera:camera, renderer:renderer, bloom:bloom, soft:function(){ return soft; }, auto:function(){ return { level:auto.level, p50:+auto.p50.toFixed(1), pr:renderer.getPixelRatio() }; }, pools:pools, runner:function(){ return { body:body, J:J }; }, ghosts:ghostsG, forkWall:forkWall,
         resize:function(w, h){ vw = w; vh = h; renderer.setSize(w, h, false); composer.setSize(w, h); camera.aspect = w/h; camera.updateProjectionMatrix(); },
         applySettings:function(){ applyGfx(); snd.volume(SET.vol); },
-        reset:function(){ scrollZ = 0; setTheme(0, true); camYaw = 0; },
+        reset:function(){ scrollZ = 0; setTheme(0, true); camYaw = 0; door = null; darkK = 0; }, cam:function(){ return { yaw:+camYaw.toFixed(3), x:+camera.position.x.toFixed(2), z:+camera.position.z.toFixed(2), dark:+darkK.toFixed(2) }; },
         project:function(x, y, z){ tmpV.set(x, y, z || 0).project(camera); return { x:(tmpV.x + 1)/2*vw, y:(1 - tmpV.y)/2*vh, z:tmpV.z }; },
         upload:uploadScene, dispose:function(){ var li = MODELS.listeners.indexOf(onModel); if(li >= 0) MODELS.listeners.splice(li, 1); try { composer.dispose && composer.dispose(); } catch(e){} try { renderer.dispose(); renderer.forceContextLoss && renderer.forceContextLoss(); } catch(e){} },
         frame:function(dt){ frame(dt); } };
       /* ---- the frame ---- */
       var camYaw = 0, camPos = new THREE.Vector3(0, 2.4, 4.6), look = new THREE.Vector3(0, 1.3, -6), boltK = 0, batPhase = 0, menuSpin = 0;
       function frame(dt){ renderer.info.reset();
-        for(var e = 0; e < EV.length; e++){ var ev = EV[e]; if(ev.type === 'theme') setTheme(ev.theme, false); else if(ev.type === 'reset' || ev.type === 'start'){ setTheme(theme, true); scrollZ = 0; } else if(ev.type === 'candle'){ candleGlow.position.set(lx(ev.l), .7, 0); glowT = .35; } } EV.length = 0;
+        for(var e = 0; e < EV.length; e++){ var ev = EV[e]; if(ev.type === 'theme') setTheme(ev.theme, false); else if(ev.type === 'turn') door = { dir:ev.dir, one:ev.one }; else if(ev.type === 'reset' || ev.type === 'start'){ setTheme(theme, true); scrollZ = 0; door = null; darkK = 0; } else if(ev.type === 'candle'){ candleGlow.position.set(lx(ev.l), .7, 0); glowT = .35; } } EV.length = 0;
         if(themeK < 1){ themeK = Math.min(1, themeK + dt*2.5); Object.keys(tgt).forEach(function(k){ col[k].lerp(tgt[k], Math.min(1, dt*6)); }); applyTheme(); }
         var running = mode === 'run' && alive; if(running) scrollZ += speed*dt*DEPTH;
         M.floor.map.offset.y = -(scrollZ/(LEN/24)) % 1; M.rug.map.offset.y = -(scrollZ/(LEN/12)) % 1; M.ceiling.map.offset.y = (scrollZ/(LEN/18)) % 1; M.wall.map.offset.x = (scrollZ/3) % 1;
@@ -221,7 +221,12 @@
         for(var oi = 0; oi < objs.length; oi++){ var o = objs[oi]; if(o.z <= 0 || o.z > 1.06) continue; if(o.k === 'fork' || o.k === 'turn'){ fk = o; continue; } var pl = pools[o.k]; if(!pl) continue; var s = pl.take(); if(!s) continue; s.position.set(lx(o.l), 0, dz(o.z)); s.rotation.set(0, 0, 0);
           if(o.k === 'high'){ s.position.y = 1.15 + Math.sin(t*5 + o.z*9)*.12; s.rotation.z = Math.sin(t*7 + o.z*4)*.12; s.rotation.y = o.l < 1 ? -.3 : o.l > 1 ? .3 : 0; } else if(o.k === 'candle'){ s.position.y = .05 + Math.sin(flick*10 + o.z*7)*.01; } }
         Object.keys(pools).forEach(function(k){ if(k !== 'sconce' && k !== 'portrait' && k !== 'bat') pools[k].end(); });
-        forkWall.visible = !!fk; if(fk){ forkWall.position.z = dz(fk.z); var one = fk.k === 'turn'; fwHoles.forEach(function(h, i){ var sd = i ? 1 : -1; h.hole.visible = !one || sd === fk.dir; }); arrowSign.visible = one; if(one) arrowSign.material = arrowMat(fk.dir); fwPortrait.visible = !one; pools.arch.begin(); fwHoles.forEach(function(h, i){ if(!h.hole.visible) return; var a = pools.arch.take(); if(a){ a.position.set((i ? 1 : -1)*LANE_W, 0, forkWall.position.z + .18); a.rotation.set(0, 0, 0); } }); pools.arch.end(); } else { pools.arch.begin(); pools.arch.end(); }
+        /* the doorway: progress 0..1 over TURN_T. First half: the wall the runner just reached slides on past the camera (smoothstep), the camera follows the runner into the chosen arch and turns toward it,
+           and the picture blacks out as the wall meets the lens. The sim swaps the theme at .5, under the black. Second half: the black lifts and the new hall swings in from the side the turn came from. */
+        var prog = turnT > 0 ? 1 - turnT/TURN_T : 0, ent = turnT > 0 ? clamp(prog/.5, 0, 1) : 0, ee = ent*ent*(3 - 2*ent), ex = turnT > 0 ? clamp((prog - .5)/.5, 0, 1) : 1, xe = 1 - (1 - ex)*(1 - ex);
+        darkK = turnT > 0 ? (prog < .5 ? clamp((prog - .22)/.14, 0, 1) : 1 - clamp((prog - .5)/.2, 0, 1)) : 0; if(turnT <= 0) door = null;
+        var dw = turnT > 0 && prog < .5 && door ? door : null, wallZ = fk ? dz(fk.z) : dw ? ee*(camera.position.z + 1.2) : null, wOne = fk ? fk.k === 'turn' : dw ? dw.one : false, wDir = fk ? fk.dir : dw ? dw.dir : 1;
+        forkWall.visible = wallZ !== null; if(wallZ !== null){ forkWall.position.z = wallZ; fwHoles.forEach(function(h, i){ var sd = i ? 1 : -1; h.hole.visible = !wOne || sd === wDir; }); arrowSign.visible = wOne; if(wOne) arrowSign.material = arrowMat(wDir); fwPortrait.visible = !wOne; pools.arch.begin(); fwHoles.forEach(function(h, i){ if(!h.hole.visible) return; var a = pools.arch.take(); if(a){ a.position.set((i ? 1 : -1)*LANE_W, 0, wallZ + .18); a.rotation.set(0, 0, 0); } }); pools.arch.end(); } else { pools.arch.begin(); pools.arch.end(); }
         /* the runner: run cycle, jump tuck, slide lean, stumble tilt, the lantern light in its hand */
         var pxw = lx(px), lift = jump > 0 ? Math.sin(Math.PI*(1 - jump/.6))*1.1 : 0, bob = running ? Math.abs(Math.sin(t*14))*.05 : 0, tilt = stumble > 0 ? Math.sin(stumble*12)*.25 : 0, sw = running ? Math.sin(t*14) : 0;
         runner.position.set(pxw, lift + bob, 0); runner.rotation.set(0, 0, tilt); if(J.Root){ J.Root.rotation.x = slide > 0 ? .9 : (running ? -.12 : 0); J.Root.position.y = slide > 0 ? -.35 : 0; J.Root.scale.y = slide > 0 ? .75 : 1; }
@@ -235,11 +240,12 @@
         if(glowT > 0){ glowT -= dt; candleGlow.material.opacity = glowT/.35; candleGlow.scale.setScalar(1.2 + (1 - glowT/.35)*1.5); } else candleGlow.material.opacity = 0;
         /* lightning: the moon window blazes and a cold light sweeps the hall */
         M.moon.emissiveIntensity = .9 + light*4; boltL.intensity = light*2.2; hemi.intensity = 1.15 + light*.9;
-        /* camera: behind and above the runner, easing with the lane; the doorway run drives it into the arch, dark, then swings the new hall in */
-        var prog = turnT > 0 ? 1 - turnT/TURN_T : 0, ent = turnT > 0 ? clamp(prog/.45, 0, 1) : 0, ex = turnT > 0 ? clamp((prog - .62)/.38, 0, 1) : 1, exe = 1 - (1 - ex)*(1 - ex), narrow = Math.max(0, 1.1 - camera.aspect);
-        var cx = pxw*.45, cz = 4.6 + narrow*2.2, cy = 2.4 + narrow*.4, lz = -6, ly = 1.3; if(turnT > 0){ if(prog < .55){ cx = lerp(pxw*.45, lx(turnDir < 0 ? 0 : 2), ent*ent); cz -= ent*ent*3.2; camYaw = -turnDir*ent*ent*.5; } else { camYaw = turnDir*(1 - exe)*.9; cx = turnDir*(1 - exe)*1.2; } } else camYaw = lerp(camYaw, 0, Math.min(1, dt*6));
+        /* camera: behind and above the runner, easing with the lane. Doorway, first half: it follows the runner all the way into the chosen arch and turns toward that side (a right door turns the view right).
+           Second half: having turned 90 degrees, it starts the new hall looking back toward where it came from (left of the axis after a right turn) and swings onto the axis. Both halves are continuous; the one jump sits under full black. */
+        var narrow = Math.max(0, 1.1 - camera.aspect);
+        var cx = pxw*.45, cz = 4.6 + narrow*2.2, cy = 2.4 + narrow*.4, lz = -6, ly = 1.3; if(turnT > 0){ if(prog < .5){ cx = lerp(pxw*.45, lx(turnDir < 0 ? 0 : 2), ee); camYaw = turnDir*ee*.45; } else { camYaw = -turnDir*(1 - xe)*.7; cx = lerp(-turnDir*.6, pxw*.45, xe); } } else camYaw = lerp(camYaw, 0, Math.min(1, dt*6));
         if(mode === 'menu'){ menuSpin += dt*.25; cx = Math.sin(menuSpin)*2.2; cz = 3.4 + Math.cos(menuSpin)*.8; cy = 1.9; lz = -1.5; ly = 1.0; camYaw = 0; }
-        camPos.set(cx, cy, cz); camera.position.lerp(camPos, Math.min(1, dt*(mode === 'menu' ? 2 : 10))); look.set(cx*.6 + Math.sin(camYaw)*6, ly, lz*Math.cos(camYaw)); camera.lookAt(look);
+        camPos.set(cx, cy, cz); if(turnT > 0 && prog >= .5 && prog < .52) camera.position.copy(camPos); else camera.position.lerp(camPos, Math.min(1, dt*(mode === 'menu' ? 2 : 10)));   /* the one snap of the turn lands under the black */ look.set(cx*.6 + Math.sin(camYaw)*6, ly, lz*Math.cos(camYaw)); camera.lookAt(look);
         var now = performance.now(); if(auto.last && !document.hidden && !soft){ var gap = now - auto.last; if(gap < 200){ auto.samples.push(gap); if(auto.samples.length >= 120){ auto.samples.sort(function(a, b){ return a - b; }); auto.p50 = auto.samples[60]; auto.samples.length = 0; auto.windows++; if(auto.p50 > 24 && auto.level < 3 && auto.windows > 2){ auto.level++; applyGfx(); try { console.info('Ghost Run: frames at '+auto.p50.toFixed(0)+' ms, picture stepped down to level '+auto.level); } catch(e){} } } } } auto.last = now;
         if(bloom.enabled) composer.render(); else renderer.render(scene, camera); P.stats = { calls:renderer.info.render.calls, tris:renderer.info.render.triangles };
       }
@@ -253,8 +259,8 @@
     (function buildDom(){
       hudEl = document.createElement('div'); hudEl.className = 'gr-hud';
       hudEl.innerHTML = '<div class="gr-tl"><b data-dist>0 m</b><span data-candles>0 candles</span></div><div class="gr-tr"><b data-hall>the great hall</b><div class="gr-threat"><i data-threat></i></div><span class="gr-tlabel">the ghosts</span></div>'+
-        '<div class="gr-hint" data-hint></div><div class="gr-fork" data-fork>a fork: pick a side</div><div class="gr-door" data-door><b data-doorarrow>\u2190</b><span data-doorname></span><small data-doorn></small></div>';
-      api.stage.appendChild(hudEl); ['dist', 'candles', 'hall', 'threat', 'hint', 'fork', 'door', 'doorarrow', 'doorname', 'doorn'].forEach(function(k){ hud[k] = hudEl.querySelector('[data-'+k+']'); });
+        '<div class="gr-hint" data-hint></div><div class="gr-fork" data-fork>a fork: pick a side</div><div class="gr-door" data-door><b data-doorarrow>\u2190</b><span data-doorname></span><small data-doorn></small></div><div class="gr-dark" data-dark></div>';
+      api.stage.appendChild(hudEl); ['dist', 'candles', 'hall', 'threat', 'hint', 'fork', 'door', 'doorarrow', 'doorname', 'doorn', 'dark'].forEach(function(k){ hud[k] = hudEl.querySelector('[data-'+k+']'); });
       hud.hint.textContent = api.touch ? 'swipe left, right, up or down' : 'arrows dodge, up jumps, down slides';
       menuEl = document.createElement('div'); menuEl.className = 'gr-menu gm-ui';
       menuEl.innerHTML = '<div class="gr-panel"><h2>Ghost Run</h2><p class="gr-sub">Three lanes through a haunted house, the ghosts on your heels</p><button type="button" class="gr-play" data-play>Play</button>'+
@@ -275,22 +281,23 @@
       var tw = Math.round(clamp(threat, 0, 1)*100); if(last.tw !== tw){ last.tw = tw; hud.threat.style.width = tw+'%'; } var hot = threat >= .5; if(last.hot !== hot){ last.hot = hot; hud.threat.classList.toggle('hot', hot); }
       setOn('hint', alive && t < 5 && halls === 0 && played === 1);
       var fk = objs.filter(function(o){ return o.k === 'fork' && !o.hit && o.z > .05; })[0]; setOn('fork', !!fk && turnT <= 0);
-      var door = turnT > 0; setOn('door', door); if(door){ setText('doorarrow', turnDir < 0 ? '\u2190' : '\u2192'); var nx = turnT > TURN_T*.55 ? (theme + 1) % THEMES.length : theme; setText('doorname', THEMES[nx].name); setText('doorn', 'hall '+(halls + 1)); }
+      var dk = Math.round(darkK*100)/100; if(last.dk !== dk){ last.dk = dk; hud.dark.style.opacity = dk; }
+      var door = turnT > 0; setOn('door', door); if(door){ setText('doorarrow', turnDir < 0 ? '\u2190' : '\u2192'); var nx = turnT > TURN_T*.5 ? (theme + 1) % THEMES.length : theme; setText('doorname', THEMES[nx].name); setText('doorn', 'hall '+(halls + 1)); }
     }
     /* ---- the frame ---- */
     g.update0 = g.update; g.update = function(dt){ g.update0(dt); frameDt = dt; };
     g.draw = function(){ if(!R) return; var dt = frameDt; frameDt = 0; R.frame(dt); drawHud(); };
     g.resize = function(w, h){ if(R) R.resize(w, h); };
-    /* ---- the pointer: the framework's swipe pad ('dirs') arrives through g.key, the title card is DOM (.gm-ui clicks go straight to it) ---- */
+    /* ---- the pointer: the framework's swipe gestures ('swipe', no buttons) arrive through g.key, the title card is DOM (.gm-ui clicks go straight to it) ---- */
     g.pointer = function(){ };
     g.destroy = function(){ [hudEl, menuEl].forEach(function(el){ if(el && el.parentNode) el.parentNode.removeChild(el); }); snd.close(); if(R) R.dispose(); R = null; };
     /* ---- what the tests read ---- */
-    g.peek = function(){ return { lane:lane, speed:+speed.toFixed(3), dist:Math.floor(dist), candles:candles, objs:objs.length, alive:alive, jump:jump, slide:slide, threat:+threat.toFixed(3), halls:halls, theme:theme, turning:turnT > 0, turnT:+turnT.toFixed(3), light:+light.toFixed(3), bats:bats.length, kinds:objs.map(function(o){ return o.k; }), mode:mode, played:played, model:!!MODELS.haunt, modelFailed:MODELS.failed.haunt || null, soft:R ? R.soft() : null, gfx:SET.gfx }; };
+    g.peek = function(){ return { lane:lane, speed:+speed.toFixed(3), dist:Math.floor(dist), candles:candles, objs:objs.length, alive:alive, jump:jump, slide:slide, threat:+threat.toFixed(3), halls:halls, theme:theme, turning:turnT > 0, turnT:+turnT.toFixed(3), dark:+darkK.toFixed(2), doorWall:R ? R.forkWall.visible : null, light:+light.toFixed(3), bats:bats.length, kinds:objs.map(function(o){ return o.k; }), mode:mode, played:played, model:!!MODELS.haunt, modelFailed:MODELS.failed.haunt || null, soft:R ? R.soft() : null, gfx:SET.gfx }; };
     g.dbg = { turn:function(d){ if(mode === 'run' && alive) turnHall(d < 0 ? -1 : 1); }, spawn:function(k, l){ objs.push({ k:k, l:l == null ? 1 : l, z:0.001, dir:1 }); }, light:function(){ light = 1; emit('light'); }, threat:function(v){ threat = clamp(v, 0, 1); return threat; }, start:function(){ start(); return mode; }, menu:function(){ toMenu(); return mode; },
       model:function(k, buf, cb){ parseModel(k, buf, cb); }, models:function(){ return { haunt:!!MODELS.haunt, failed:MODELS.failed }; }, tick:function(sec){ var n = Math.round((sec || 1)*60); for(var i = 0; i < n; i++) g.update(1/60); return t; },
       pools:function(){ var out = {}; Object.keys(R.pools).forEach(function(k){ var p = R.pools[k]; out[k] = { n:p.slots.length, on:p.slots.filter(function(s){ return s.visible; }).length, model:!!(p.slots[0].children[0] && p.slots[0].children[0].userData.model) }; }); return out; },
       runner:function(){ var r = R.runner(), j = {}; Object.keys(r.J).forEach(function(k){ j[k] = !!r.J[k]; }); return { model:!!(r.body && r.body.userData.model), joints:j, x:+R.scene.getObjectByProperty('type', 'Group').position.x.toFixed(2) }; },
-      forkWall:function(){ return { visible:R.forkWall.visible, z:+R.forkWall.position.z.toFixed(2) }; },
+      forkWall:function(){ return { visible:R.forkWall.visible, z:+R.forkWall.position.z.toFixed(2) }; }, cam:function(){ return R.cam(); },
       gpu:function(){ var r = R.renderer, st = R.stats || {}; return { programs:r.info.programs.length, textures:r.info.memory.textures, geometries:r.info.memory.geometries, calls:st.calls, tris:st.tris }; }, progs:function(){ return R.renderer.info.programs.map(function(p){ return p.id+' '+p.name+' '+p.usedTimes+' '+p.cacheKey; }); },
       matProgs:function(){ var out = []; R.scene.traverse(function(o){ if(!(o.isMesh || o.isLine || o.isPoints || o.isSprite)) return; [].concat(o.material).forEach(function(m){ var pr = R.renderer.properties.get(m), cp = pr && pr.currentProgram; out.push((o.name || o.type)+'/'+m.type+'/'+(m.name || '')+' -> '+(cp ? cp.id : 'none')); }); }); return out; },
       sceneLights:function(){ var n = 0; R.scene.traverseVisible(function(o){ if(o.isLight) n++; }); return n; }, auto:function(){ return R.auto(); }, gfx:function(){ return { tier:SET.gfx, bloom:R.bloom.enabled, pr:R.renderer.getPixelRatio() }; }, project:function(x, y, z){ return R.project(x, y, z); },
