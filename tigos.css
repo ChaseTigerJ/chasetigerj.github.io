@@ -493,8 +493,14 @@ html, body { margin:0 !important; padding:0 !important; height:100%; overflow:hi
 .u-ariel .wall .orb-a { background:radial-gradient(circle, rgba(255,77,141,.5), rgba(255,77,141,0) 60%); }
 .u-ariel .wall .orb-b { background:radial-gradient(circle, rgba(176,108,255,.45), rgba(176,108,255,0) 60%); }
 .u-ariel .wall .orb-c { background:radial-gradient(circle, rgba(255,159,208,.3), rgba(255,159,208,0) 60%); }
-.u-ariel .wall { background:radial-gradient(1200px 700px at 20% 0%, rgba(255,77,141,.28), transparent 60%), radial-gradient(1000px 700px at 90% 100%, rgba(124,60,200,.36), transparent 60%), #14070f; }
-.u-ariel .tile { background:linear-gradient(145deg,#ff9fd0,#c04dff) !important; }
+.u-ariel .wall { background:radial-gradient(1200px 700px at 20% 0%, rgba(255,77,141,.34), transparent 60%), radial-gradient(1000px 700px at 90% 100%, rgba(255,120,190,.3), transparent 60%), #1e0814; }
+/* Ariel's desktop: the hearts keep floating up behind the windows, slow and soft */
+.wall-hearts { display:none; z-index:1; }
+.u-ariel .wall-hearts { display:block; }
+.wall-hearts i { color:rgba(255,120,190,.55); }
+.wall-hearts i svg { filter:drop-shadow(0 0 12px rgba(255,77,141,.45)); }
+.rm .wall-hearts i { animation:none; opacity:0; }
+.u-ariel .tile { background:linear-gradient(145deg,#ff9fd0,#ff4d8d) !important; }   /* just pink */
 .u-ariel .tile svg { stroke:#fff !important; fill:rgba(255,255,255,.22); filter:none; }
 .u-ariel .home h1 em { background:linear-gradient(90deg,#ff5fa8,#ffa3d1,#c58bff); -webkit-background-clip:text; background-clip:text; }
 .u-ariel .home h1, .u-ariel .h3, .u-ariel .win-title, .u-ariel .crow b, .u-ariel .eyebrow { color:#ffd0ea; }
@@ -507,6 +513,12 @@ html, body { margin:0 !important; padding:0 !important; height:100%; overflow:hi
 .u-greggyd { --ink:#f2f2f2; --muted:rgba(242,242,242,.7); --faint:rgba(242,242,242,.42); --orange:#e95420; --amber:#f5a623; --teal:#77216f; --blue:#5e2750; --pink:#e95420; --violet:#77216f; --glass:rgba(44,0,30,.86); --glass2:rgba(50,4,36,.95); --line:rgba(255,255,255,.1); --line2:rgba(255,255,255,.18); --r:6px; --r2:6px; font-family:Ubuntu,"DejaVu Sans","Noto Sans",Cantarell,system-ui,sans-serif; }
 .u-greggyd .wall { background:radial-gradient(1200px 800px at 30% 10%, #a34a76 0%, transparent 55%), radial-gradient(1000px 900px at 85% 90%, #e95420 0%, transparent 50%), linear-gradient(160deg,#77216f,#2c001e 60%,#1a0012); }
 .u-greggyd .wall .orb { display:none; }
+/* Ubuntu: the circle of friends sits low on the wallpaper like the stock desktop, the panel is Yaru dark, Ubuntu orange is the accent */
+.u-greggyd .wall::after { content:""; position:absolute; right:4vw; bottom:6vh; width:clamp(120px,16vw,220px); height:clamp(120px,16vw,220px); opacity:.16; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='34' fill='none' stroke='%23fff' stroke-width='11' stroke-dasharray='53 18.2' transform='rotate(-30 50 50)'/%3E%3Ccircle cx='50' cy='11' r='9.5' fill='%23fff'/%3E%3Ccircle cx='16.2' cy='69.5' r='9.5' fill='%23fff'/%3E%3Ccircle cx='83.8' cy='69.5' r='9.5' fill='%23fff'/%3E%3C/svg%3E") center / contain no-repeat; pointer-events:none; }
+.u-greggyd .dk.xtra .tile, .u-ariel .dk.xtra .tile { box-shadow:none; }
+.u-greggyd .dk.open .dot { background:#e95420; }
+.u-greggyd .win-body, .u-greggyd .card { color:#f2f2f2; }
+.u-greggyd .seg button.on, .u-greggyd .pt-btn.live, .u-greggyd .pet-chip.on { background:#e95420; color:#fff; }
 .u-greggyd .menubar { height:28px; background:#1d1d1d; border-bottom:1px solid #000; backdrop-filter:none; -webkit-backdrop-filter:none; font-family:inherit; }
 .u-greggyd .desktop { inset:28px 0 0 0; }
 .u-greggyd .mb-app::before { content:"Activities"; margin-right:14px; font-weight:500; color:#eee; }
@@ -578,8 +590,10 @@ html, body { margin:0 !important; padding:0 !important; height:100%; overflow:hi
 .lu.dim { opacity:.45; transform:scale(.92); }
 .lu .av { width:clamp(96px,12vw,128px); height:clamp(96px,12vw,128px); border-radius:50%; overflow:hidden; display:grid; place-items:center; box-shadow:0 20px 50px rgba(0,0,0,.5), 0 0 0 3px rgba(255,255,255,.14); transition:transform .3s var(--spring), box-shadow .3s; font-size:clamp(30px,4vw,44px); font-weight:800; color:#fff; letter-spacing:-.04em; }
 .lu .av img { width:100%; height:100%; object-fit:cover; }
-.lu .av.a-ariel { background:linear-gradient(145deg,#ff9fd0,#c04dff); }
+.lu .av.a-ariel { background:linear-gradient(145deg,#ff9fd0,#ff4d8d); }
 .lu .av.a-greggyd { background:linear-gradient(145deg,#f7a21b,#e95420 60%,#300a24); }
+.lu .av .av-tux { width:66%; height:auto; display:block; filter:drop-shadow(0 6px 14px rgba(0,0,0,.4)); }
+.lu .av.a-ariel svg { width:52%; height:52%; fill:#fff; stroke:none; filter:drop-shadow(0 6px 14px rgba(0,0,0,.35)); }
 .lu:hover .av, .lu.sel .av { transform:scale(1.06); box-shadow:0 24px 60px rgba(0,0,0,.55), 0 0 0 4px rgba(255,255,255,.35); }
 .lu b { font-size:17px; font-weight:600; color:#fff; text-shadow:0 2px 12px rgba(0,0,0,.6); }
 .lu small { display:block; font-size:11px; color:rgba(255,255,255,.55); font-weight:500; margin-top:2px; }
@@ -856,8 +870,9 @@ html, body { margin:0 !important; padding:0 !important; height:100%; overflow:hi
 .ufo svg { width:100%; height:auto; display:block; overflow:visible; }
 .ufo .art { display:block; position:relative; }
 .ufo .art canvas { position:absolute; inset:0; width:100%; height:100%; display:none; }
-.ufo.gl .art { aspect-ratio:1.6; }
-.ufo.gl .art canvas { display:block; } .ufo.gl .art svg { visibility:hidden; }
+.ufo.gl .art { aspect-ratio:1.15; }
+.ufo.gl .art canvas { display:block; -webkit-mask-image:linear-gradient(#000 70%, transparent 100%); mask-image:linear-gradient(#000 70%, transparent 100%); }   /* the beam fades out toward the ground instead of ending on the canvas edge */
+.ufo.gl .art svg { visibility:hidden; }
 .ufo .ufo-ship { animation:ufoHover 1.6s ease-in-out infinite alternate; transform-origin:50% 40%; }
 .ufo .ufo-lights circle { fill:#ff5d8f; animation:ufoLights 1s steps(1) infinite; }
 .ufo .ufo-lights circle:nth-child(2) { animation-delay:.2s; } .ufo .ufo-lights circle:nth-child(3) { animation-delay:.4s; } .ufo .ufo-lights circle:nth-child(4) { animation-delay:.6s; } .ufo .ufo-lights circle:nth-child(5) { animation-delay:.8s; }

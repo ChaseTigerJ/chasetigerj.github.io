@@ -320,7 +320,7 @@ window.TIG_UFO = '<svg viewBox="0 0 160 100">'+
     '<g class="ufo-lights"><circle cx="34" cy="46" r="3.2"/><circle cx="52" cy="50" r="3.2"/><circle cx="80" cy="52" r="3.2"/><circle cx="108" cy="50" r="3.2"/><circle cx="126" cy="46" r="3.2"/></g>'+
   '</g></svg>';
 
-window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":"assets/apple_story-ab08fad7.webp","eb_banner":"assets/eb_banner-75b8347f.webp","eb_desktop":"assets/eb_desktop-ffaab384.webp","eb_phones":"assets/eb_phones-22b048b3.webp","guns":"assets/guns-66ed52d2.glb","haunt":"assets/haunt-f5a021cf.glb","headshot":"assets/headshot-e073c9c4.webp","hub_email2":"assets/hub_email2-571e2eab.webp","hub_email4":"assets/hub_email4-d939ee7c.webp","hub_packet":"assets/hub_packet-2c59872a.webp","hub_support":"assets/hub_support-a75baba2.webp","jm_email":"assets/jm_email-1cab3011.webp","jm_menu":"assets/jm_menu-054d3d33.webp","jm_photo":"assets/jm_photo-3ae1b18a.webp","props":"assets/props-b05c2297.glb","resume_pdf":"assets/resume_pdf-dd13bd5c.pdf","resume_preview":"assets/resume_preview-b3284045.webp","tank":"assets/tank-b7b1ded3.glb","three":"assets/three-fef2a638.js","tig_aleppo":"assets/tig_aleppo-ed307995.webp","tig_mba":"assets/tig_mba-2622ce0c.webp","tig_site":"assets/tig_site-82ca23e5.webp","train":"assets/train-a288cfc4.glb","wraith":"assets/wraith-04534956.glb","zombie":"assets/zombie-867e73b1.glb","zoo":"assets/zoo-2119ec39.glb","games":"assets/games-cdf9c3d4.js","nightshift":"assets/nightshift-7a69eaec.js","rounds":"assets/rounds-d07c9c89.js","tanks":"assets/tanks-764c08e8.js","ghostrun":"assets/ghostrun-cf5e4296.js"};
+window.TIG_ASSETS = {"apple_abe":"assets/apple_abe-74c520ba.webp","apple_story":"assets/apple_story-ab08fad7.webp","eb_banner":"assets/eb_banner-75b8347f.webp","eb_desktop":"assets/eb_desktop-ffaab384.webp","eb_phones":"assets/eb_phones-22b048b3.webp","guns":"assets/guns-66ed52d2.glb","haunt":"assets/haunt-f5a021cf.glb","headshot":"assets/headshot-e073c9c4.webp","hub_email2":"assets/hub_email2-571e2eab.webp","hub_email4":"assets/hub_email4-d939ee7c.webp","hub_packet":"assets/hub_packet-2c59872a.webp","hub_support":"assets/hub_support-a75baba2.webp","jm_email":"assets/jm_email-1cab3011.webp","jm_menu":"assets/jm_menu-054d3d33.webp","jm_photo":"assets/jm_photo-3ae1b18a.webp","props":"assets/props-b05c2297.glb","resume_pdf":"assets/resume_pdf-dd13bd5c.pdf","resume_preview":"assets/resume_preview-b3284045.webp","tank":"assets/tank-b7b1ded3.glb","three":"assets/three-fef2a638.js","tig_aleppo":"assets/tig_aleppo-ed307995.webp","tig_mba":"assets/tig_mba-2622ce0c.webp","tig_site":"assets/tig_site-82ca23e5.webp","train":"assets/train-a288cfc4.glb","wraith":"assets/wraith-04534956.glb","zombie":"assets/zombie-867e73b1.glb","zoo":"assets/zoo-200635e2.glb","games":"assets/games-cdf9c3d4.js","nightshift":"assets/nightshift-7a69eaec.js","rounds":"assets/rounds-d07c9c89.js","tanks":"assets/tanks-764c08e8.js","ghostrun":"assets/ghostrun-cf5e4296.js"};
 window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,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"};
 /* tigOS core app.js, part 00: setup. The parts in this folder are concatenated in name order by build.py, so they share one scope. */
 (function(){
@@ -538,7 +538,7 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
   /* hidden apps (Arcade, Pets) get a dock icon only while they are open, like a running app that is not pinned */
   function dockTemp(open){
     var dock = $('#dock'); if(!dock) return;
-    var want = open.filter(function(k){ return APPS[k] && APPS[k].hidden; }), have = $$('.dk.tmp', dock), sep = $('.sep.tmpsep', dock), anchor = $('a.dk', dock);
+    var want = open.filter(function(k){ return APPS[k] && APPS[k].hidden && !$('.dk.xtra[data-dock="'+k+'"]', dock); }), have = $$('.dk.tmp', dock), sep = $('.sep.tmpsep', dock), anchor = $('a.dk', dock);
     have.forEach(function(d){ if(want.indexOf(d.getAttribute('data-dock')) < 0){ d.classList.add('gone'); setTimeout(function(){ d.remove(); var s2 = $('.sep.tmpsep', dock); if(s2 && !$('.dk.tmp:not(.gone)', dock)) s2.remove(); }, 260); } });
     want.forEach(function(id){ if($('.dk.tmp[data-dock="'+id+'"]', dock)) return;
       if(!$('.sep.tmpsep', dock)){ sep = document.createElement('span'); sep.className = 'sep tmpsep'; dock.insertBefore(sep, anchor); }
@@ -548,8 +548,8 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
   function dockTop(){ var d = $('#dock'); if(!d) return desk.clientHeight - 84; return Math.round(d.getBoundingClientRect().top - desk.getBoundingClientRect().top); }
   /* the area windows may occupy. A bottom dock reserves its strip; a side dock reserves its column instead; an auto-hidden dock reserves nothing (it slides over the windows, like macOS) */
   function area(){
-    var W = desk.clientWidth, H = desk.clientHeight, hide = root.classList.contains('dock-hide'), left = root.classList.contains('dock-left'), right = root.classList.contains('dock-right'), d = $('#dock');
-    var a = { x0:(root.classList.contains('u-greggyd') && !isMobile()) ? 72 : 0, x1:W, y1:H - 10 };
+    var W = desk.clientWidth, H = desk.clientHeight, gd = root.classList.contains('u-greggyd') && !isMobile(), hide = root.classList.contains('dock-hide') && !gd, left = gd || root.classList.contains('dock-left'), right = !gd && root.classList.contains('dock-right'), d = $('#dock');
+    var a = { x0:gd ? 72 : 0, x1:W, y1:H - 10 };   /* the Ubuntu skin pins a full-height launcher on the left whatever Dock position says, so it is a left dock here (measuring it as a bottom dock put its top at 0 and squashed every window) */
     if(d && !hide && !isMobile()){ var r = d.getBoundingClientRect(), dr = desk.getBoundingClientRect(); if(left) a.x0 = Math.max(a.x0, Math.round(r.right - dr.left) + 8); else if(right) a.x1 = Math.round(r.left - dr.left) - 8; else a.y1 = dockTop() - 10; }
     return a;
   }
@@ -901,11 +901,26 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
   var ORIG_TILES = null;
   function heartsOn(){ if(!ORIG_TILES){ ORIG_TILES = $$('.tile use').map(function(u){ return [u, u.getAttribute('href')]; }); } $$('.tile use').forEach(function(u){ u.setAttribute('href', '#i-heart'); }); }
   function heartsOff(){ if(ORIG_TILES){ ORIG_TILES.forEach(function(p){ p[0].setAttribute('href', p[1]); }); } }
-  function setUser(name){
-    USER.name = name; root.classList.remove('u-ariel', 'u-greggyd'); heartsOff();
-    if(name === 'ariel'){ root.classList.add('u-ariel'); heartsOn(); var hs = $('#hearts'); hs.innerHTML = ''; for(var i = 0; i < 26; i++){ var h = document.createElement('i'); h.style.left = (Math.random()*100)+'%'; h.style.animationDuration = (5+Math.random()*6)+'s'; h.style.animationDelay = (-Math.random()*9)+'s'; h.style.width = h.style.height = (14+Math.random()*22)+'px'; h.innerHTML = ic('heart'); hs.appendChild(h); } eggShow('love'); }
-    if(name === 'greggyd'){ root.classList.add('u-greggyd'); eggShow('tux'); if(!isMobile()) Object.keys(WM.wins).forEach(function(k){ var w = WM.wins[k]; if(!w.max && w.el.offsetLeft < 80) w.el.style.left = '84px'; }); }
-    $$('.term .p').forEach(function(el){ /* leave history as is */ });
+  /* the active user survives a tab close: saved beside the prefs (localStorage, cookie fallback for the embed) and restored at boot without the pop-up */
+  var USTORE = { get:function(){ var v = null; try { v = localStorage.getItem('tigos.user'); } catch(e){} if(!v){ try { var m = document.cookie.match(/(?:^|; )tigos\.user=([^;]*)/); if(m) v = decodeURIComponent(m[1]); } catch(e){} } return v && USERS[v] ? v : 'chase'; },
+    set:function(v){ try { localStorage.setItem('tigos.user', v); } catch(e){} try { document.cookie = 'tigos.user='+encodeURIComponent(v)+'; max-age=31536000; path=/; SameSite=Lax'; } catch(e){} } };
+  function fillHearts(box, n, big){ box.innerHTML = ''; for(var i = 0; i < n; i++){ var h = document.createElement('i'); h.style.left = (Math.random()*100)+'%'; h.style.animationDuration = (big ? 5 : 14)+Math.random()*(big ? 6 : 12)+'s'; h.style.animationDelay = (-Math.random()*(big ? 9 : 24))+'s'; h.style.width = h.style.height = (big ? 14+Math.random()*22 : 10+Math.random()*18)+'px'; h.innerHTML = ic('heart'); box.appendChild(h); } }
+  /* GreggyD and Ariel keep Pets and the Arcade in the dock (Chase's dock stays the portfolio); the icons sit with the apps, before the separator */
+  function userDock(){
+    var dock = $('#dock'); if(!dock) return; var want = USER.name === 'chase' ? [] : ['games', 'pets'];
+    $$('.dk.xtra', dock).forEach(function(d){ if(want.indexOf(d.getAttribute('data-dock')) < 0) d.remove(); });
+    var sep = $('.sep', dock);
+    want.forEach(function(id){ if($('.dk.xtra[data-dock="'+id+'"]', dock)) return; var b = document.createElement('button'); b.className = 'dk xtra'; b.type = 'button'; b.setAttribute('data-open', id); b.setAttribute('data-dock', id); b.setAttribute('aria-label', APPS[id].title);
+      b.innerHTML = tileHTML(id)+'<span class="dot"></span><span class="tip">'+esc(APPS[id].title)+'</span>'; dock.insertBefore(b, sep); });
+    $$('.dk.tmp', dock).forEach(function(d){ if(want.indexOf(d.getAttribute('data-dock')) > -1) d.remove(); });
+  }
+  function setUser(name, quiet){
+    USER.name = name; root.classList.remove('u-ariel', 'u-greggyd'); heartsOff(); USTORE.set(name);
+    var wh = $('#wallHearts'); if(wh) wh.innerHTML = '';
+    userDock();   /* before the heart swap so Ariel's Arcade + Pets tiles turn into hearts too */
+    if(name === 'ariel'){ root.classList.add('u-ariel'); heartsOn(); fillHearts($('#hearts'), 26, true); if(wh) fillHearts(wh, 18, false); if(!quiet) eggShow('love'); }
+    if(name === 'greggyd'){ root.classList.add('u-greggyd'); if(!quiet) eggShow('tux'); if(!isMobile()) Object.keys(WM.wins).forEach(function(k){ var w = WM.wins[k]; if(!w.max && w.el.offsetLeft < 80) w.el.style.left = '84px'; }); }
+    if(typeof applyPrefs === 'function' && typeof PREF !== 'undefined') applyPrefs();   /* accent, wallpaper palette and the work area follow the user */
   }
 /* tigOS core app.js, part 11: login screen. The parts in this folder are concatenated in name order by build.py, so they share one scope. */
   /* ---------------- login screen (Log Out) ---------------- */
@@ -913,7 +928,11 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
   var USER_META = { chase:{ label:'Chase Johnston', sub:'Admin' }, ariel:{ label:'Ariel', sub:'' }, greggyd:{ label:'greggyd', sub:'' } };
   function loginScreen(){
     Object.keys(WM.wins).forEach(function(k){ close(WM.wins[k]); }); pw.hidden = true; menu.hidden = true; mbLogo.classList.remove('on');
-    $('#loginUsers').innerHTML = '<button class="lu" type="button" data-user="chase"><span class="av a-chase">'+(A.headshot ? '<img src="'+A.headshot+'" alt="">' : 'C')+'</span><b>'+esc(USER_META.chase.label)+'<small>'+USER_META.chase.sub+'</small></b></button>';
+    /* Chase always; the other profile only if that is who was logged in (so GreggyD's or Ariel's tile appears after their own session, never before) */
+    var others = USER.name !== 'chase' && USERS[USER.name] ? [USER.name] : [], tux = $('#tux .tux-svg');
+    var avatar = function(u){ return u === 'greggyd' ? (tux ? tux.outerHTML.replace('class="tux-svg"', 'class="av-tux"') : 'G') : u === 'ariel' ? ic('heart') : 'A'; };
+    $('#loginUsers').innerHTML = '<button class="lu" type="button" data-user="chase"><span class="av a-chase">'+(A.headshot ? '<img src="'+A.headshot+'" alt="">' : 'C')+'</span><b>'+esc(USER_META.chase.label)+'<small>'+USER_META.chase.sub+'</small></b></button>'+
+      others.map(function(u){ return '<button class="lu" type="button" data-user="'+u+'"><span class="av a-'+u+'">'+avatar(u)+'</span><b>'+esc(USER_META[u].label)+'<small>'+(USER_META[u].sub || (u === 'greggyd' ? 'Ubuntu' : 'Standard'))+'</small></b></button>'; }).join('');
     loginSel = null; loginPw.hidden = true; loginIn.value = ''; $('#loginHint').textContent = ''; $$('.lu', loginEl).forEach(function(b){ b.classList.remove('dim', 'sel'); });
     loginEl.classList.remove('leaving'); loginEl.hidden = false; tick();
     $$('.lu', loginEl).forEach(function(b){ b.addEventListener('click', function(e){ e.stopPropagation(); var u = b.getAttribute('data-user');
@@ -968,7 +987,7 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
      (hop, land, dangle, poof, the UFO beam-up on .art) all carry over. Until Three.js and the model are in, or without WebGL, the SVG
      in .art stays visible as the fallback. */
   var PET3 = { state:0, r:null, cam:null, scene:null, glb:null, insts:[], raf:0, last:0, frame:0, wait:[], err:'' };   /* state: 0 idle, 1 loading, 2 ready, 3 failed */
-  var PET3_MAXPX = 288, PET3_UFO_ASPECT = 1.6;
+  var PET3_MAXPX = 288, PET3_UFO_ASPECT = 1.15;   /* the saucer frame is tall: the beam has to reach down over the cow */
   function pet3Load(){
     if(PET3.state) return; PET3.state = 1;
     if(!window.WebGLRenderingContext){ PET3.state = 3; PET3.err = 'no webgl'; return; }
@@ -979,7 +998,7 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
         PET3.r.setClearColor(0x000000, 0); PET3.r.setPixelRatio(1); PET3.r.setSize(PET3_MAXPX, PET3_MAXPX, false);
       } catch(e){ PET3.state = 3; PET3.err = 'renderer: '+(e && e.message); return; }
       PET3.scene = new THREE.Scene();
-      var hemi = new THREE.HemisphereLight(0xffffff, 0x8a93a8, 1.35), sun = new THREE.DirectionalLight(0xffffff, 2.3), fill = new THREE.DirectionalLight(0xbfd8ff, .7);
+      var hemi = new THREE.HemisphereLight(0xfff4e6, 0x7d86a0, 1.2), sun = new THREE.DirectionalLight(0xffffff, 2.7), fill = new THREE.DirectionalLight(0xbfd8ff, .6);
       sun.position.set(2.2, 4, 3.2); fill.position.set(-2.5, 1.2, 2); PET3.scene.add(hemi, sun, fill);
       PET3.cam = new THREE.PerspectiveCamera(30, 1, .1, 30);
       var url = window.TIG_ASSETS && window.TIG_ASSETS.zoo;
@@ -997,7 +1016,9 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
       if(/^(Beam|Dome)/.test(m.name)) m.side = THREE.DoubleSide;
       if(/Highlight/.test(m.name)){ m.emissiveIntensity = .8; }
       if(/^(Cyan|Violet|AlienGlow|Light|Spit)/.test(m.name)) m.emissiveIntensity = Math.max(m.emissiveIntensity, 1.2);
-      if(/^Beam/.test(m.name)){ m.emissiveIntensity = 2.4; m.color.setHex(0x8fffb0); } });
+      if(/^Beam/.test(m.name)){ m.emissive.setHex(0x2eff5c); m.emissiveIntensity = 1.3; m.color.setHex(0x2eff5c); m.transparent = true; m.opacity = .6; m.depthWrite = false; m.side = THREE.DoubleSide; }   /* a solid green: emissive so the lights never grey it, opaque enough that the wallpaper does not tint it */
+      /* richer coats: the flat Blender colours read a little chalky under the hemisphere light, so saturate the non-emissive ones */
+      if(!m.emissive || m.emissive.getHex() === 0){ var hsl = { h:0, s:0, l:0 }; m.color.getHSL(hsl); if(hsl.s > .08 && hsl.l > .1 && hsl.l < .92) m.color.setHSL(hsl.h, Math.min(1, hsl.s*1.15), Math.max(0, hsl.l*.97)); } });
     PET3.glb = sc; PET3.state = 2;
     PET3.insts.forEach(function(inst){ if(!inst.g) pet3Build(inst); });
     var w = PET3.wait; PET3.wait = []; w.forEach(function(fn){ try { fn(); } catch(e){} });
@@ -1048,7 +1069,7 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
       pet3Pose(inst, step, party);
       var r = PET3.r, cam = PET3.cam;
       if(r.domElement.width !== px || r.domElement.height !== py) r.setSize(px, py, false);
-      cam.aspect = inst.aspect; if(inst.ufo){ cam.position.set(0, .35, 4.6); cam.lookAt(0, -.25, 0); } else { cam.position.set(0, 1.05, 3.55); cam.lookAt(0, .6, 0); } cam.updateProjectionMatrix();
+      cam.aspect = inst.aspect; if(inst.ufo){ cam.position.set(0, .1, 5.2); cam.lookAt(0, -.78, 0); } else { cam.position.set(0, 1.05, 3.55); cam.lookAt(0, .6, 0); } cam.updateProjectionMatrix();
       PET3.scene.add(inst.g); r.render(PET3.scene, cam); PET3.scene.remove(inst.g);
       inst.ctx.clearRect(0, 0, px, py); inst.ctx.drawImage(r.domElement, 0, r.domElement.height - py, px, py, 0, 0, px, py);
       if(!inst.drawn){ inst.drawn = 1; inst.el.classList.add('gl'); }
@@ -1074,7 +1095,7 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
     if(inst.ufo){
       rot('Hull', S(.6)*.03, t*.9, S(.45, .3)*.03); mov('Hull', 0, S(.55)*.05, 0);
       for(var i = 1; i <= 6; i++){ var L = j['Light'+i]; if(L && L.material){ var pal = [0xff5d8f, 0xffd23f, 0x5ff2ff, 0x8fffb0, 0xa78bfa]; L.material.emissive.setHex(pal[(i + Math.floor(t*5))%pal.length]); L.material.color.setHex(pal[(i + Math.floor(t*5))%pal.length]); } }
-      var beam = has('beam'); if(j.Beam){ j.Beam.visible = beam; if(beam){ j.Beam.material.opacity = .28 + A(6)*.14; scl('Beam', 1 + S(9)*.04, 1, 1 + S(7, .2)*.04); } }
+      var beam = has('beam'); if(j.Beam){ j.Beam.visible = beam; if(beam){ j.Beam.material.opacity = .55 + A(6)*.15; scl('Beam', 1 + S(9)*.04, 1, 1 + S(7, .2)*.04); } }
       return;
     }
     /* facing: turn toward the walk direction (--face is set by petWalk); cards face slightly right */
@@ -1111,7 +1132,7 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
       scl('Body', 1, 1 + S(.25)*.03, 1 + S(.25)*.02);
     } else if(kind === 'aki'){ if(j.Jet1){ j.Jet1.visible = j.Jet2.visible = true; } glow('Violet', 1.4 + S(.6)*.6); glow('Cyan', 1.2 + S(1.1)*.3); }
     if(look){ var lk = ph(1.7); rot('Head', -.06, Math.sin(lk*T)*.6, Math.sin(lk*T*2)*.05); if(kind === 'dog'){ rot('EarL', -.25*bump(lk)); rot('EarR', -.25*bump(lk)); } if(kind === 'llama') rot('Neck', -.12*bump(lk), Math.sin(lk*T)*.25, 0); if(kind === 'alien'){ rot('AntL', 0, 0, -.3*bump(lk)); rot('AntR', 0, 0, .3*bump(lk)); } }
-    if(sit && quad){ var st = bump(ph(3.4))*1.0; st = Math.min(1, st*2.2); rot('Body', -.28*st, 0, 0); mov('Body', 0, -.1*st, 0); rot('LegBL', 1.3*st); rot('LegBR', 1.3*st); rot('LegFL', .28*st); rot('LegFR', .28*st); rot('Head', .25*st, 0, 0); if(kind === 'cat' || kind === 'tiger') rot('Tail', .3*st, S(.5)*.4*st + .4*st, 0); if(kind === 'llama') rot('Neck', .2*st, 0, 0); }
+    if(sit && quad){ var st = bump(ph(3.4))*1.0; st = Math.min(1, st*2.2); var deep = kind === 'dog' ? 1.5 : 1; rot('Body', -.28*st*deep, 0, 0); mov('Body', 0, -.1*st*deep, 0); rot('LegBL', 1.3*st); rot('LegBR', 1.3*st); rot('LegFL', .28*st*deep); rot('LegFR', .28*st*deep); rot('Head', .25*st*deep, 0, 0); if(kind === 'dog'){ rot('EarL', -.15*st); rot('EarR', -.15*st); rot('Tail', 0, S(1.2)*.5*st, 0); } if(kind === 'cat' || kind === 'tiger') rot('Tail', .3*st, S(.5)*.4*st + .4*st, 0); if(kind === 'llama') rot('Neck', .2*st, 0, 0); }
     if(sit && kind === 'penguin'){ var sp = Math.min(1, bump(ph(3.4))*2.2); mov('Body', 0, -.05*sp, 0); rot('Body', .15*sp, 0, 0); rot('Head', .2*sp, .3*sp*S(.4), 0); }
     if(sit && kind === 'alien'){ var sa = Math.min(1, bump(ph(3.4))*2.2); mov('Body', 0, -.16*sa, 0); rot('LegL', -1.5*sa); rot('LegR', -1.5*sa); rot('Head', -.1*sa, 0, 0); rot('ArmL', -.9*sa, 0, .4*sa); rot('ArmR', -.9*sa, 0, -.4*sa); }
     if(sit && kind === 'ladybug'){ var sl = Math.min(1, bump(ph(3.4))*2.2); rot('WingL', 0, 0, -.55*sl); rot('WingR', 0, 0, .55*sl); }
@@ -1126,7 +1147,7 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
     if(say){ var talkK = A(4.5); if(j.Jaw) rot('Jaw', talkK*.4); else rot('Head', -talkK*.08 - .04, 0, 0); if(kind === 'cow') rot('Head', -.18, 0, 0); if(kind === 'llama') rot('Neck', -.15, 0, 0); if(kind === 'dog') scl('Tongue', 1, 1.2 + talkK*.5, 1); if(kind === 'alien'){ rot('AntL', 0, 0, -.2 - S(5)*.15); rot('AntR', 0, 0, .2 + S(5)*.15); } }
     if(happy){ rot('Head', 0, S(3)*.15, S(3, .25)*.15); if(quad) rot('Tail', 0, S(4)*.6, 0); if(kind === 'penguin'){ rot('FlipL', 0, 0, .6 + S(5)*.5); rot('FlipR', 0, 0, -.6 - S(5)*.5); } if(kind === 'ladybug'){ rot('AntL', 0, 0, -S(5)*.3); rot('AntR', 0, 0, S(5)*.3); } if(kind === 'alien' || kind === 'aki'){ rot('ArmL', -1.2 - S(3)*.5, 0, .3); rot('ArmR', -1.2 - S(3, .5)*.5, 0, -.3); } }
     if(kind === 'aki'){ var hp = happy || trick || has('talk'); if(j.Eyes) j.Eyes.visible = !hp; if(j.EyesHappy) j.EyesHappy.visible = hp; if(!nap){ scl('Jet1', 1, .7 + A(9)*.5, 1); scl('Jet2', 1, .7 + A(9, .5)*.5, 1); mov('Body', 0, S(.45)*.03, 0); rot('Ant', S(.8)*.06, 0, S(.6)*.06); } }
-    if(kind === 'dog' && !nap){ scl('Tongue', 1, .85 + A(1.4)*.35, 1); rot('Tail', 0, S(1.6)*.35, 0); }
+    if(kind === 'dog' && !nap){ var pant = happy || say || trick || walk; scl('Tongue', 1, pant ? .9 + A(1.6)*.4 : .35, 1); rot('Tail', 0, S(pant ? 3 : 1.4)*(pant ? .7 : .3), .25); }
     if(kind === 'cat' && !nap){ rot('Tail', S(.35)*.25, 0, 0); rot('EarR', S(.2)*.1, 0, 0); }
     if(kind === 'tiger' && !nap){ rot('Head', .1, 0, 0); rot('Tail', S(.6)*.3, S(.45)*.4, 0); }
     if(kind === 'cow' && !nap){ rot('EarL', 0, 0, S(.3)*.08); rot('EarR', 0, 0, -S(.3, .3)*.08); }
@@ -1139,7 +1160,7 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
       var p, k;
       if(kind === 'cat'){ p = ph(1.8); k = bump(Math.min(1, p*1.6)); rot('Body', .4*k, 0, 0); mov('Body', 0, -.06*k, .1*k); rot('LegFL', .9*k); rot('LegFR', .9*k); rot('LegBL', -.5*k); rot('LegBR', -.5*k); rot('Head', -.45*k, 0, 0); rot('Tail', -1.1*k, 0, 0); if(p > .55){ rot('LegFL', S(5)*.35); rot('LegFR', -S(5)*.35); } }   /* stretch, then knead */
       if(kind === 'tiger'){ p = ph(1.7); var c = bump(Math.min(1, p/.5)), lp = p > .45 ? bump((p - .45)/.55) : 0; mov('Body', 0, -.12*c + .34*lp, .4*lp); rot('Body', -.15*lp, 0, 0); ['LegFL', 'LegFR'].forEach(function(q){ rot(q, .6*c - .9*lp); }); ['LegBL', 'LegBR'].forEach(function(q){ rot(q, -.5*c + .8*lp); }); rot('Head', .25*c - .3*lp, 0, 0); rot('Tail', 0, S(6)*.5*c, 0); }   /* crouch and pounce at the viewer */
-      if(kind === 'dog'){ p = ph(1.7); k = Math.min(1, bump(p)*1.8); rot('Body', .35*k, 0, 0); mov('Body', 0, -.08*k, 0); rot('LegFL', 1.2*k); rot('LegFR', 1.2*k); rot('LegBL', -.35*k); rot('LegBR', -.35*k); rot('Head', -.5*k, 0, 0); rot('Tail', .3, S(7)*.9*k, 0); scl('Tongue', 1, 1.5 + A(4)*.5, 1); }   /* play bow, tail helicopter */
+      if(kind === 'dog'){ p = ph(1.7); var bow = p < .55 ? Math.min(1, bump(p/.55)*1.6) : 0, hp2 = p >= .55 ? Math.abs(Math.sin((p - .55)/.45*Math.PI*2)) : 0; rot('Body', .32*bow, 0, 0); mov('Body', 0, -.12*bow + .16*hp2, -.06*bow); rot('LegFL', 1.1*bow - .3*hp2); rot('LegFR', 1.1*bow - .3*hp2); rot('LegBL', -.25*bow + .4*hp2); rot('LegBR', -.25*bow + .4*hp2); rot('Head', -.62*bow - .15*hp2, S(3)*.15*bow, 0); rot('EarL', -.3*bow); rot('EarR', -.3*bow); rot('Tail', .35, S(8)*1.0, 0); scl('Tongue', 1, 1.4 + A(5)*.5, 1); }   /* play bow (rear up, chin down, ears forward, tail helicopter) then two happy hops */
       if(kind === 'cow'){ rot('Head', A(4)*.08 - .05, S(.7)*.15, 0); rot('Tail', 0, S(3)*.8, 0); rot('EarL', 0, 0, S(2.5)*.4); rot('EarR', 0, 0, -S(2.5, .5)*.4); }   /* chew and swat */
       if(kind === 'penguin'){ p = ph(1.9); k = Math.min(1, bump(p)*1.6); rot('Body', 1.35*k, 0, 0); mov('Body', 0, -.17*k, .05*k); g.position.x += Math.sin(p*Math.PI)*face*.3; rot('FlipL', 0, 0, 1.1*k); rot('FlipR', 0, 0, -1.1*k); rot('Head', -.6*k, 0, 0); rot('LegFL', S(5)*.5*k); rot('LegFR', -S(5)*.5*k); }   /* belly slide */
       if(kind === 'ladybug'){ p = ph(1.9); k = Math.min(1, bump(p)*1.5); rot('WingL', 0, 0, -1.0*k); rot('WingR', 0, 0, 1.0*k); if(j.FlyL){ j.FlyL.visible = j.FlyR.visible = k > .35; rot('FlyL', 0, 0, S(30)*.6); rot('FlyR', 0, 0, -S(30)*.6); } mov('Body', 0, .15*k, 0); rot('Body', -.12*k, 0, 0); ['FL', 'FR', 'ML', 'MR', 'BL', 'BR'].forEach(function(q, i){ rot('Leg'+q, .4*k + S(6, i*.2)*.1*k); }); }   /* wings open, hover */
@@ -1781,7 +1802,8 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
   var ACCENTS = { orange:'#ff8a00', pink:'#ff4d8d', violet:'#a78bfa', teal:'#63e6be', blue:'#8cc7ff', amber:'#ffd166' };
   function applyPrefs(){
     root.classList.toggle('light', PREF.theme === 'light');
-    root.style.setProperty('--accent', ACCENTS[PREF.accent] || ACCENTS.orange); root.style.setProperty('--orange', ACCENTS[PREF.accent] || ACCENTS.orange);
+    var acc = USER.name === 'greggyd' ? '#e95420' : USER.name === 'ariel' ? '#ff5fa8' : (ACCENTS[PREF.accent] || ACCENTS.orange);   /* Ubuntu orange and Ariel's pink win over the picked accent */
+    root.style.setProperty('--accent', acc); root.style.setProperty('--orange', acc);
     root.style.setProperty('--tscale', { sm:1, md:1.06, lg:1.18, xl:1.32 }[PREF.text] || 1.06);
     root.classList.remove('dock-sm', 'dock-lg'); if(PREF.dock !== 'md') root.classList.add('dock-'+PREF.dock);
     root.classList.remove('dock-left', 'dock-right'); if(PREF.dockpos !== 'bottom') root.classList.add('dock-'+PREF.dockpos);
@@ -1819,9 +1841,6 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
     w.body.innerHTML = '<div class="pad"><div class="eyebrow">Settings</div><div class="h3" style="margin-bottom:6px">Make it yours</div><p class="sub" style="margin-bottom:8px">Saved on this device. Nothing leaves the browser.</p>'+
       row('Appearance', 'Dark is the default.', seg('theme', [['dark','Dark'],['light','Light']]))+
       row('Accent', 'Highlights, headline, menus.', sw)+
-      '<div class="set-group"><div class="eyebrow">Pets</div></div>'+
-      row('Desktop pet', PREF.pet && PETS[PREF.pet] ? esc(PETS[PREF.pet].name)+' the '+esc(PETS[PREF.pet].label)+' is out. Drag them anywhere; drop them on the X to say goodbye.' : 'A 3D companion that lives on the desktop. Pick one.', pick)+
-      row('Pet size', '', '<div class="pet-ctl">'+seg('petsize', [['sm','Small'],['md','Medium'],['lg','Large']])+'<button type="button" class="pet-more" data-open-pets>Open Pets</button></div>')+
       row('Text size', 'Inside app windows.', seg('text', [['sm','S'],['md','M'],['lg','L'],['xl','XL']]))+
       (isMobile() ? '' :
       row('Dock size', '', seg('dock', [['sm','Small'],['md','Medium'],['lg','Large']]))+
@@ -1832,6 +1851,9 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
       row('Screensaver', esc(PREF.saver === 'random' ? 'A different one each time.' : (SAVERS[PREF.saver] || SAVERS.drift).sub+'.'), seg('saver', Object.keys(SAVERS).map(function(k){ return [k, SAVERS[k].name]; }).concat([['random','Random']])))+
       row('Start after', 'Idle time before the screensaver.', seg('idle', [['off','Off'],['2','2 min'],['5','5 min'],['10','10 min'],['20','20 min']]))+
       row('Motion', 'Turn off animations.', seg('motion', [['on','On'],['off','Reduced']]))+
+      '<div class="set-group"><div class="eyebrow">Pets</div></div>'+
+      row('Desktop pet', PREF.pet && PETS[PREF.pet] ? esc(PETS[PREF.pet].name)+' the '+esc(PETS[PREF.pet].label)+' is out. Drag them anywhere; drop them on the X to say goodbye.' : 'A 3D companion that lives on the desktop. Pick one.', pick)+
+      row('Pet size', '', '<div class="pet-ctl">'+seg('petsize', [['sm','Small'],['md','Medium'],['lg','Large']])+'<button type="button" class="pet-more" data-open-pets>Open Pets</button></div>')+
       '<div class="set-foot"><span>tigOS 2.0 \u00b7 '+VIS().length+' apps</span><button type="button" data-reset>Reset to defaults</button></div></div>';
     $$('.seg button', w.body).forEach(function(b){ b.addEventListener('click', function(){ setPref(b.parentNode.getAttribute('data-pref'), b.getAttribute('data-v')); }); });
     $$('[data-pet-pick]', w.body).forEach(function(b){ b.addEventListener('click', function(){ var k = b.getAttribute('data-pet-pick'); if(!k){ if(!PREF.pet) return; var el = petEl(); if(el) petGoodbye(el); else petSet(''); return; } if(k === PREF.pet) return; petSet(k); toast(PETS[k].name+' is out', 'Bottom right. Drag them wherever you like.'); }); });
@@ -2071,20 +2093,20 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
      The CSS gradient stays underneath as the fallback (Settings > Wallpaper > Still, or no WebGL). ---------------- */
   var WALL = { gl:null, cv:null, on:false, raf:0, last:0, t0:0, px:0, py:0, tx:0, ty:0 };
   var WALL_FRAG = [
-    'precision mediump float; uniform vec2 R; uniform float T; uniform vec2 P;',
+    'precision mediump float; uniform vec2 R; uniform float T; uniform vec2 P; uniform vec3 B0, B1, C0, C1, C2, C3;',
     'float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
     'float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3. - 2.*f); return mix(mix(hash(i), hash(i + vec2(1., 0.)), f.x), mix(hash(i + vec2(0., 1.)), hash(i + vec2(1., 1.)), f.x), f.y); }',
     'float fbm(vec2 p){ float v = 0., a = .5; for(int i = 0; i < 5; i++){ v += a*noise(p); p = p*2.03 + vec2(1.7, 9.2); a *= .5; } return v; }',
     'void main(){',
     '  vec2 uv = gl_FragCoord.xy / R; vec2 q = vec2(uv.x * R.x / R.y, uv.y);',
-    '  vec3 c = mix(vec3(.145, .086, .224), vec3(.082, .106, .212), uv.x*.6 + (1. - uv.y)*.4);',           /* #251639 -> #151b36, the CSS base */
+    '  vec3 c = mix(B0, B1, uv.x*.6 + (1. - uv.y)*.4);',           /* the base gradient (Chase: #251639 -> #151b36, the CSS base) */
     '  float far = fbm(q*1.5 + P*.03 + vec2(T*.018, T*.012));',
     '  float mid = fbm(q*2.4 - P*.08 + vec2(-T*.026, T*.02));',
     '  float near = fbm(q*3.8 + P*.17 + vec2(T*.03, -T*.024));',
-    '  c += vec3(1., .59, .27) * .52 * smoothstep(.30, .78, far) * (1. - uv.x*1.15) * (uv.y*.7 + .3);',                  /* orange, top left */
-    '  c += vec3(.53, .41, 1.) * .58 * smoothstep(.30, .78, mid) * (uv.x*.75 + .25) * (1. - uv.y*1.1);',                  /* violet, bottom right */
-    '  c += vec3(1., .35, .59) * .30 * smoothstep(.36, .82, near) * max(0., 1. - abs(uv.x - .55)*1.7) * max(0., 1. - abs(uv.y - .5)*1.7);', /* pink, centre */
-    '  c += vec3(.35, .75, 1.) * .26 * smoothstep(.38, .84, mid) * uv.x * uv.y;',                            /* blue, top right */
+    '  c += C0 * .52 * smoothstep(.30, .78, far) * (1. - uv.x*1.15) * (uv.y*.7 + .3);',                  /* orange, top left */
+    '  c += C1 * .58 * smoothstep(.30, .78, mid) * (uv.x*.75 + .25) * (1. - uv.y*1.1);',                  /* violet, bottom right */
+    '  c += C2 * .30 * smoothstep(.36, .82, near) * max(0., 1. - abs(uv.x - .55)*1.7) * max(0., 1. - abs(uv.y - .5)*1.7);', /* pink, centre */
+    '  c += C3 * .26 * smoothstep(.38, .84, mid) * uv.x * uv.y;',                            /* blue, top right */
     '  c += (hash(gl_FragCoord.xy + T) - .5) * .012;',                                                     /* grain against banding */
     '  gl_FragColor = vec4(c, 1.);',
     '}'].join('\n');
@@ -2104,11 +2126,18 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
       gl.useProgram(prog);
       var buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
       var a = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
-      WALL.u = { R:gl.getUniformLocation(prog, 'R'), T:gl.getUniformLocation(prog, 'T'), P:gl.getUniformLocation(prog, 'P') };
+      WALL.u = { R:gl.getUniformLocation(prog, 'R'), T:gl.getUniformLocation(prog, 'T'), P:gl.getUniformLocation(prog, 'P') }; ['B0', 'B1', 'C0', 'C1', 'C2', 'C3'].forEach(function(k){ WALL.u[k] = gl.getUniformLocation(prog, k); });
     } catch(e){ WALL.gl = false; return; }
     WALL.gl = gl; WALL.cv = cv; WALL.t0 = performance.now();
     document.addEventListener('pointermove', function(e){ if(e.pointerType === 'touch') return; WALL.tx = (e.clientX/innerWidth - .5)*2; WALL.ty = (e.clientY/innerHeight - .5)*-2; }, { passive:true });
   }
+  /* one palette per user: Chase's aurora, Ubuntu aubergine and orange for GreggyD, pinks for Ariel. Colours are linear-ish rgb 0..1 */
+  var WALL_PALS = {
+    chase:   { B0:[.145, .086, .224], B1:[.082, .106, .212], C0:[1, .59, .27], C1:[.53, .41, 1], C2:[1, .35, .59], C3:[.35, .75, 1] },
+    greggyd: { B0:[.19, .0, .13], B1:[.10, .0, .07], C0:[.95, .36, .14], C1:[.55, .15, .48], C2:[.91, .33, .13], C3:[.98, .66, .16] },
+    ariel:   { B0:[.24, .05, .16], B1:[.14, .03, .11], C0:[1, .32, .58], C1:[1, .6, .82], C2:[1, .2, .45], C3:[.85, .55, 1] }
+  };
+  function wallPal(){ return WALL_PALS[USER.name] || WALL_PALS.chase; }
   function wallWants(){ return PREF.wall !== 'still' && PREF.motion !== 'off' && !document.hidden && (!sleepEl || sleepEl.hidden) && !root.classList.contains('gaming'); }
   function wallApply(){
     if(WALL.gl === null) wallInit(); if(!WALL.gl) return;
@@ -2124,6 +2153,7 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
     if(cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; gl.viewport(0, 0, w, h); }
     WALL.px += (WALL.tx - WALL.px)*.04; WALL.py += (WALL.ty - WALL.py)*.04;
     gl.uniform2f(WALL.u.R, w, h); gl.uniform1f(WALL.u.T, (ts - WALL.t0)*.001); gl.uniform2f(WALL.u.P, WALL.px, WALL.py);
+    var pal = wallPal(); if(WALL.palName !== USER.name){ WALL.palName = USER.name; Object.keys(pal).forEach(function(k){ gl.uniform3fv(WALL.u[k], pal[k]); }); cv.setAttribute('data-pal', USER.name); }
     gl.drawArrays(gl.TRIANGLES, 0, 3); WALL.frames = (WALL.frames || 0) + 1; if((WALL.frames & 7) === 1) cv.setAttribute('data-frames', WALL.frames);
   }
   document.addEventListener('visibilitychange', wallApply);
@@ -2286,6 +2316,7 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
       if(!booted){ booted = true; setTimeout(function(){ toast('Welcome to tigOS', isMobile() ? 'Tap an app in the dock to start.' : 'Open Projects, or press \u2318K to search.'); }, 700); }
     }, 2250);
   }
+  var savedUser = USTORE.get(); if(savedUser !== 'chase') setUser(savedUser, true);   /* the tab was closed as GreggyD or Ariel: come back as them, no pop-up */
   bootSeq();
   function reclamp(){
     if(isMobile()) return;
