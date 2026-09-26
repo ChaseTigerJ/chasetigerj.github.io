@@ -756,6 +756,16 @@ html, body { margin:0 !important; padding:0 !important; height:100%; overflow:hi
 .pet.walk { transition:left var(--wd, 2s) linear; }
 .pet .body { position:absolute; inset:0; animation:petBob 2.6s ease-in-out infinite; transform-origin:50% 96%; }
 .pet .art { position:absolute; inset:0; transform:scaleX(var(--face, 1)); transform-origin:50% 50%; }
+/* 3D: the .art holds a canvas the shared renderer paints into; the SVG underneath stays as the fallback until the first frame lands.
+   Facing is a real turn of the model, so the mirror flip is dropped once the canvas is live */
+.pet .art canvas { position:absolute; inset:0; width:100%; height:100%; display:none; }
+.pet.gl .art canvas { display:block; }
+.pet.gl .art svg { display:none; }
+.pet.gl .art { transform:none; }
+.pet.gl .shadow { left:22%; right:22%; bottom:6%; }
+.pet.gl.abduct.beamed .art { transform:translateY(-92%) scale(.4) rotate(14deg); }
+.pet.gl.abduct.returned .art { transform:none; }
+.pet.gl.doomed .art { transform:scale(.86); }
 .pet svg { width:100%; height:100%; overflow:visible; display:block; }
 .pet svg * { transform-box:fill-box; }
 .pet svg .abs { transform-box:view-box; transform-origin:0 0; }   /* parts positioned with an SVG rotate(a cx cy) attribute keep their own pivot */
@@ -844,6 +854,10 @@ html, body { margin:0 !important; padding:0 !important; height:100%; overflow:hi
 /* the UFO (cow only) */
 .ufo { position:absolute; z-index:3; pointer-events:none; opacity:0; transform:translateY(-140px) scale(.6); transition:opacity .5s, transform .9s var(--spring); }
 .ufo svg { width:100%; height:auto; display:block; overflow:visible; }
+.ufo .art { display:block; position:relative; }
+.ufo .art canvas { position:absolute; inset:0; width:100%; height:100%; display:none; }
+.ufo.gl .art { aspect-ratio:1.6; }
+.ufo.gl .art canvas { display:block; } .ufo.gl .art svg { visibility:hidden; }
 .ufo .ufo-ship { animation:ufoHover 1.6s ease-in-out infinite alternate; transform-origin:50% 40%; }
 .ufo .ufo-lights circle { fill:#ff5d8f; animation:ufoLights 1s steps(1) infinite; }
 .ufo .ufo-lights circle:nth-child(2) { animation-delay:.2s; } .ufo .ufo-lights circle:nth-child(3) { animation-delay:.4s; } .ufo .ufo-lights circle:nth-child(4) { animation-delay:.6s; } .ufo .ufo-lights circle:nth-child(5) { animation-delay:.8s; }
@@ -876,6 +890,22 @@ html, body { margin:0 !important; padding:0 !important; height:100%; overflow:hi
 .pet-bin.hot { background:var(--red); border-color:#fff; border-style:solid; color:#fff; transform:scale(1.18); }
 .pet-bin.hot span { opacity:1; transform:none; }
 .pet-ctl { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.pet-more { padding:6px 12px; border-radius:8px; border:1px solid var(--line2); font-weight:600; font-size:calc(13px * var(--ts)); color:var(--muted); transition:background .15s, color .15s; }
+.pet-more:hover { color:var(--ink); border-color:var(--ink); }
+/* the Settings picker: a chip per pet with a live mini inside */
+.set-group { padding-top:10px; }
+.pet-pick { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:8px; }
+.pet-chip { position:relative; display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 4px 7px; border-radius:12px; border:1px solid var(--line); background:rgba(127,127,127,.1); color:var(--muted); transition:background .15s, border-color .15s, color .15s, transform .15s; cursor:pointer; }
+.pet-chip:hover { color:var(--ink); border-color:var(--line2); transform:translateY(-1px); }
+.pet-chip.on { border-color:var(--accent, var(--orange)); background:rgba(255,138,0,.1); color:var(--ink); box-shadow:0 0 0 1px var(--accent, var(--orange)) inset; }
+.pet-chip b { font-size:calc(12.5px * var(--ts)); font-weight:700; line-height:1.1; }
+.pet-chip small { font-size:calc(10.5px * var(--ts)); color:var(--faint); line-height:1; }
+.pet-chip-art { position:relative; width:52px; height:52px; display:grid; place-items:center; }
+.pet-chip-art .pet { --pw:52px; position:relative; pointer-events:none; cursor:default; animation:none; will-change:auto; }
+.pet-chip-art .pet .body { animation:none; }
+.pet-chip.none .pet-chip-art svg { width:22px; height:22px; opacity:.7; }
+.pet-chip.none.on .pet-chip-art svg { opacity:1; }
+@media (max-width:760px) { .pet-pick { grid-template-columns:repeat(3, minmax(0, 1fr)); } .pet-chip-art { width:44px; height:44px; } .pet-chip-art .pet { --pw:44px; } }
 .pet-off { padding:6px 12px; border-radius:8px; border:1px solid var(--line2); font-weight:600; font-size:calc(13px * var(--ts)); color:var(--muted); transition:background .15s, color .15s; }
 .pet-off:hover { background:var(--red); color:#fff; border-color:transparent; }
 /* keyframes */
@@ -958,6 +988,7 @@ html, body { margin:0 !important; padding:0 !important; height:100%; overflow:hi
 .light .cal-grid span { color:rgba(23,23,28,.72); } .light .cal-grid span.we { color:rgba(23,23,28,.42); }
 .light .pet .pname, .light .pet-bin span { background:rgba(255,255,255,.96); border-color:rgba(0,0,0,.12); }
 .light .pet .zz { color:#17171c; text-shadow:none; }
+.light .pet-chip { background:rgba(0,0,0,.04); } .light .pet-chip.on { background:rgba(255,138,0,.14); }
 .light .menu.cal { background:rgba(255,255,255,.97); }
 .light .win-body::-webkit-scrollbar-thumb { background:rgba(0,0,0,.2); }
 .light .term { background:#14141a; color:#d9f7e8; }
