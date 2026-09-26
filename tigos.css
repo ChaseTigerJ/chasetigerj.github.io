@@ -1303,3 +1303,110 @@ html, body { margin:0 !important; padding:0 !important; height:100%; overflow:hi
 .ns-end-grid div { display:flex; flex-direction:column; gap:2px; padding:10px 12px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); text-align:left; }
 .ns-end-grid span { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:rgba(244,241,234,.5); }
 .ns-end-grid b { font-family:ui-monospace, Menlo, monospace; font-size:16px; font-weight:700; color:#ffd166; letter-spacing:0; }
+/* ---------- Tanks: the DOM HUD over the WebGL canvas, the difficulty card, the shop ---------- */
+.tk-hud { position:absolute; inset:0; pointer-events:none; font-family:ui-monospace, Menlo, Consolas, monospace; color:#f4f1ea; text-shadow:0 1px 2px rgba(0,0,0,.75); user-select:none; overflow:hidden; opacity:0; transition:opacity .25s; }
+.tk-hud.on { opacity:1; }
+.tk-hud > div { position:absolute; }
+.tk-tags { inset:0; }
+.tk-tag { position:absolute; left:0; top:0; width:72px; margin-left:-36px; margin-top:-30px; display:none; flex-direction:column; align-items:center; gap:3px; }
+.tk-tag.on { display:flex; }
+.tk-name { font-size:10px; color:rgba(255,255,255,.7); line-height:1; height:10px; }
+.tk-hp, .tk-fu { width:60px; height:5px; border-radius:3px; background:rgba(0,0,0,.45); overflow:hidden; }
+.tk-fu { height:3px; }
+.tk-tag.me .tk-fu { display:none; }
+.tk-hp i, .tk-fu i { display:block; height:100%; width:100%; background:#28c840; border-radius:3px; }
+.tk-hp i.low { background:#ff5f57; }
+.tk-fu i { background:#ffa94d; }
+.tk-tl { left:14px; top:12px; display:flex; flex-direction:column; gap:5px; }
+.tk-tl b { font-size:13px; color:#63e6be; }
+.tk-bar { width:110px; height:6px; border-radius:3px; background:rgba(0,0,0,.4); overflow:hidden; }
+.tk-bar i { display:block; height:100%; width:100%; background:#8fd46a; border-radius:3px; transition:width .12s linear; }
+.tk-bar i.low { background:#ff8a00; }
+.tk-tl span { font-size:10px; color:rgba(255,255,255,.7); }
+.tk-nuke { font-weight:800; color:rgba(255,255,255,.6); }
+.tk-nuke.armed { color:#ff5f57; animation:tkArmed .6s steps(2) infinite; }
+@keyframes tkArmed { to { opacity:.35; } }
+.tk-wind { left:50%; top:10px; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:4px; }
+.tk-wind span { font-size:10px; color:rgba(255,255,255,.7); }
+.tk-gauge { position:relative; width:120px; height:6px; border-radius:3px; background:rgba(255,255,255,.14); }
+.tk-gauge::before { content:""; position:absolute; left:50%; top:-3px; width:1px; height:12px; background:rgba(255,255,255,.5); }
+.tk-gauge i { position:absolute; top:1px; height:4px; border-radius:2px; background:#fff; left:50%; width:0; transition:left .3s, width .3s; }
+.tk-tr { right:14px; top:12px; text-align:right; display:flex; flex-direction:column; gap:3px; }
+.tk-tr b { font-size:12px; color:#ffd166; }
+.tk-tr span { font-size:12px; color:#ffd166; }
+.tk-msg { left:0; right:0; top:13%; text-align:center; font-size:clamp(14px, 2.4vmin, 20px); font-weight:800; opacity:0; }
+.tk-hint { left:0; right:0; top:23%; text-align:center; font-size:12px; color:rgba(255,255,255,.78); opacity:0; transition:opacity .3s; }
+.tk-hint.on { opacity:1; }
+.tk-cpu { left:0; right:0; bottom:18px; text-align:center; font-size:12px; color:rgba(255,255,255,.72); }
+.tk-menu { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:-apple-system, BlinkMacSystemFont, Inter, "Segoe UI", Roboto, sans-serif; color:#f4f1ea; user-select:none; background:rgba(8,8,14,.6); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); overflow:auto; }
+.tk-menu[hidden] { display:none; }
+.tk-panel { width:min(92%, 520px); padding:22px 26px; display:flex; flex-direction:column; gap:10px; pointer-events:auto; }
+.tk-panel[hidden] { display:none; }
+.tk-panel h2 { margin:0; text-align:center; font-size:26px; font-weight:800; letter-spacing:.02em; }
+.tk-sub { margin:0; text-align:center; font-size:13px; color:rgba(255,255,255,.7); }
+.tk-coins { margin:0 auto; padding:6px 18px; border:2px solid #ffd166; border-radius:999px; background:#14120c; color:#ffd166; font-weight:800; font-size:15px; font-family:ui-monospace, Menlo, Consolas, monospace; }
+.tk-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.tk-list button { all:unset; box-sizing:border-box; display:flex; align-items:center; gap:12px; width:100%; padding:8px 14px; border-radius:10px; background:rgba(255,255,255,.04); border:2px solid transparent; cursor:pointer; color:rgba(255,255,255,.8); text-align:left; }
+.tk-list button:hover { background:rgba(255,255,255,.08); }
+.tk-list button b { display:block; font-size:15px; font-weight:800; }
+.tk-list button small { display:block; font-size:11px; color:rgba(255,255,255,.5); margin-top:2px; }
+.tk-diffs button i { width:10px; height:10px; border-radius:50%; background:var(--c); flex:none; transition:transform .15s; }
+.tk-diffs button.sel { background:rgba(255,255,255,.1); border-color:var(--c); color:#fff; }
+.tk-diffs button.sel i { transform:scale(1.4); }
+.tk-diffs button.sel small { color:rgba(255,255,255,.75); }
+.tk-shop button { padding:6px 14px; justify-content:space-between; }
+.tk-shop button.sel { background:rgba(255,209,102,.16); border-color:#ffd166; color:#fff; }
+.tk-shop button b { font-size:13px; }
+.tk-shop .tk-cost { text-align:right; flex:none; }
+.tk-shop .tk-cost b { font-family:ui-monospace, Menlo, Consolas, monospace; font-size:12px; color:#ffd166; }
+.tk-shop button[data-id="go"] .tk-cost b { color:#8fd46a; font-size:16px; }
+.tk-shop .tk-cost small { color:rgba(255,120,110,.85); font-size:9px; }
+.tk-shop button.off { color:rgba(255,255,255,.4); }
+.tk-shop button.off .tk-cost b { color:rgba(255,255,255,.4); }
+.tk-shop button.off small, .tk-shop button.maxed small { color:rgba(255,255,255,.3); }
+.tk-shopmsg { margin:0; min-height:16px; text-align:center; font-size:12px; color:#ffd166; font-weight:700; }
+.tk-foot { margin:0; text-align:center; font-size:11px; color:rgba(255,255,255,.6); }
+.tk-set { display:flex; justify-content:center; gap:18px; flex-wrap:wrap; font-size:11px; color:rgba(255,255,255,.65); }
+.tk-set label { display:flex; align-items:center; gap:8px; }
+.tk-set select, .tk-set input { accent-color:#8fd46a; font:inherit; color:#f4f1ea; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); border-radius:6px; padding:2px 6px; }
+.tk-set input[type=range] { width:90px; padding:0; border:0; background:none; }
+.tk-set output { min-width:32px; }
+@media (max-height:460px) { .tk-panel { gap:6px; padding:12px 18px; } .tk-panel h2 { font-size:20px; } .tk-list button { padding:5px 12px; } .tk-list button small { display:none; } .tk-set { display:none; } }
+/* ---------- Ghost Run: the DOM HUD over the WebGL canvas and the title card ---------- */
+.gr-hud { position:absolute; inset:0; pointer-events:none; font-family:ui-monospace, Menlo, Consolas, monospace; color:#f4f1ea; text-shadow:0 1px 2px rgba(0,0,0,.8); user-select:none; overflow:hidden; opacity:0; transition:opacity .25s; }
+.gr-hud.on { opacity:1; }
+.gr-hud > div { position:absolute; }
+.gr-tl { left:14px; top:12px; display:flex; flex-direction:column; gap:4px; }
+.gr-tl b { font-size:15px; color:#ffd166; }
+.gr-tl span { font-size:11px; color:rgba(255,255,255,.72); }
+.gr-tr { right:14px; top:12px; text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+.gr-tr b { font-size:12px; color:#c9b8ff; font-weight:700; }
+.gr-threat { width:96px; height:6px; border-radius:3px; background:rgba(255,255,255,.14); overflow:hidden; }
+.gr-threat i { display:block; height:100%; width:0; background:#9a7cff; border-radius:3px; transition:width .12s linear, background .3s; }
+.gr-threat i.hot { background:#ff5f57; animation:grHot .5s steps(2) infinite; }
+@keyframes grHot { to { opacity:.5; } }
+.gr-tlabel { font-size:9px; color:rgba(255,255,255,.5); letter-spacing:.06em; }
+.gr-hint, .gr-fork, .gr-door { left:0; right:0; text-align:center; opacity:0; transition:opacity .3s; }
+.gr-hint.on, .gr-fork.on, .gr-door.on { opacity:1; }
+.gr-hint { top:16%; font-size:12px; color:rgba(255,255,255,.8); }
+.gr-fork { top:22%; font-size:clamp(14px, 2.6vmin, 20px); font-weight:800; color:#ffd166; animation:grFork .7s steps(2) infinite; }
+@keyframes grFork { to { color:#fff; } }
+.gr-door { top:38%; display:flex; flex-direction:column; align-items:center; gap:4px; color:#f4f1ea; }
+.gr-door b { font-size:44px; line-height:1; color:#f4e3b0; }
+.gr-door span { font-size:clamp(15px, 2.8vmin, 22px); font-weight:800; }
+.gr-door small { font-size:11px; color:rgba(255,255,255,.6); }
+.gr-menu { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:-apple-system, BlinkMacSystemFont, Inter, "Segoe UI", Roboto, sans-serif; color:#f4f1ea; user-select:none; background:linear-gradient(rgba(8,6,14,.25), rgba(8,6,14,.7)); overflow:auto; }
+.gr-menu[hidden] { display:none; }
+.gr-panel { width:min(92%, 400px); padding:22px 26px; display:flex; flex-direction:column; align-items:center; gap:14px; pointer-events:auto; }
+.gr-panel h2 { margin:0; text-align:center; font-size:34px; font-weight:800; letter-spacing:.04em; color:#e6dcff; text-shadow:0 0 18px rgba(154,124,255,.6), 0 2px 4px rgba(0,0,0,.8); }
+.gr-sub { margin:0; text-align:center; font-size:13px; color:rgba(255,255,255,.72); }
+.gr-play { all:unset; box-sizing:border-box; cursor:pointer; padding:10px 42px; border-radius:999px; background:#7c5cbf; color:#fff; font-size:17px; font-weight:800; letter-spacing:.04em; box-shadow:0 0 22px rgba(124,92,191,.6); transition:transform .12s, background .12s; }
+.gr-play:hover { background:#8f70d4; transform:translateY(-1px); }
+.gr-play:active { transform:translateY(1px); }
+.gr-foot { margin:0; text-align:center; font-size:11px; color:rgba(255,255,255,.6); line-height:1.5; }
+.gr-best { margin:0; text-align:center; font-size:12px; color:#ffd166; font-family:ui-monospace, Menlo, Consolas, monospace; min-height:14px; }
+.gr-set { display:flex; justify-content:center; gap:18px; flex-wrap:wrap; font-size:11px; color:rgba(255,255,255,.65); }
+.gr-set label { display:flex; align-items:center; gap:8px; }
+.gr-set select, .gr-set input { accent-color:#9a7cff; font:inherit; color:#f4f1ea; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); border-radius:6px; padding:2px 6px; }
+.gr-set input[type=range] { width:90px; padding:0; border:0; background:none; }
+.gr-set output { min-width:32px; }
