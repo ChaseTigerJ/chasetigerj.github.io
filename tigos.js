@@ -1364,7 +1364,7 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
     var CMD = {
       help: function(){
         print('portfolio:  '+['about','experience','journey','projects','skills','resume','contact','open &lt;app&gt;'].map(o).join('  '));
-        print('system:     '+['neofetch','weather','uptime','users','su &lt;user&gt;','settings','theme light|dark','clear','exit'].map(o).join('  '));
+        print('system:     '+['neofetch','weather','uptime','fps','debug','users','su &lt;user&gt;','settings','theme light|dark','clear','exit'].map(o).join('  '));
         print('this is a real enough shell. most unix, mac, linux and windows commands do something. explore.', 'dim');
       },
       weather: function(arg){
@@ -2303,6 +2303,58 @@ window.TIG_INLINE = {"missing_photo":"data:image/webp;base64,UklGRowNAABXRUJQVlA
     sl: function(a, T){ T.art(TRAIN, 'train'); },
     konami: function(a, T){ T.print('up up down down left right left right b a. anywhere on the desktop.'); }
   };
+/* tigOS core app.js, part 27b: fps counter and the debug overlay. The parts in this folder are concatenated in name order by build.py, so they share one scope. */
+  /* ---------------- `fps` puts a frame counter top right; `debug` opens a live panel under it: frames, main-thread busy estimate (timer lag + long tasks), JS heap
+     where the browser exposes it, network (resources, bytes on the wire, rate, connection), device, battery, and tigOS's own state (uptime, windows, pets, arcade,
+     wallpaper, DOM size, storage). One requestAnimationFrame loop runs only while either is on; the panel refreshes four times a second. Nothing persists. ---------------- */
+  var DBG = (function(){
+    var fpsEl = null, panEl = null, raf = 0, last = 0, frames = 0, fpsT = 0, fps = 0, ema = 0, worst = 0, worstShown = 0, refreshT = 0, lagT = 0, lagBusy = 0, lagSamples = [], longMs = 0, longN = 0, longWin = [], po = null, bytes0 = -1, bytesT = 0, rate = 0, battery = null, batteryAsked = false, opened = 0;
+    function on(){ return !!((fpsEl && !fpsEl.hidden) || (panEl && !panEl.hidden)); }
+    function fmtB(b){ return b < 1024 ? b+' B' : b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(2)+' MB'; }
+    function net(){ var rs = performance.getEntriesByType('resource'), nav = performance.getEntriesByType('navigation')[0], sum = nav && nav.transferSize || 0, body = nav && nav.encodedBodySize || 0, kinds = {}, cached = 0;
+      for(var i = 0; i < rs.length; i++){ var r = rs[i]; sum += r.transferSize || 0; body += r.encodedBodySize || 0; if(r.transferSize === 0 && r.encodedBodySize > 0) cached++; var k = r.initiatorType || 'other'; kinds[k] = (kinds[k] || 0) + 1; }
+      return { n:rs.length + (nav ? 1 : 0), wire:sum, body:body, cached:cached, kinds:kinds, nav:nav }; }
+    function busy(){ if(!lagSamples.length) return 0; var s = 0; for(var i = 0; i < lagSamples.length; i++) s += lagSamples[i]; return Math.min(100, Math.round(s/lagSamples.length*100)); }
+    function longBusy(){ var now = performance.now(); while(longWin.length && now - longWin[0][0] > 5000) longWin.shift(); var ms = 0; for(var i = 0; i < longWin.length; i++) ms += longWin[i][1]; return { n:longWin.length, pct:Math.min(100, Math.round(ms/Math.min(5000, Math.max(1, now - (opened || now) + 1))*100)) }; }
+    function loop(ts){ raf = requestAnimationFrame(loop); if(!on()){ cancelAnimationFrame(raf); raf = 0; return; }
+      if(last){ var dt = ts - last; ema = ema ? ema*.9 + dt*.1 : dt; if(dt > worst) worst = dt; } last = ts; frames++;
+      if(ts - fpsT >= 1000){ fps = Math.round(frames*1000/(ts - fpsT)); frames = 0; fpsT = ts; worstShown = worst; worst = 0; if(fpsEl) fpsEl.textContent = fps+' fps'; if(fpsEl) fpsEl.className = 'fps-hud'+(fps < 30 ? ' bad' : fps < 50 ? ' meh' : ''); }
+      if(panEl && !panEl.hidden && ts - refreshT >= 250){ refreshT = ts; render(); } }
+    function lagTick(){ var now = performance.now(); if(lagT){ var lag = Math.max(0, now - lagT - 100); lagSamples.push(Math.min(1, lag/100)); if(lagSamples.length > 20) lagSamples.shift(); } lagT = now; if(on()) setTimeout(lagTick, 100); else lagT = 0; }   /* a 100 ms timer that lands late says the main thread was busy */
+    function observe(){ if(po || !window.PerformanceObserver) return; try { po = new PerformanceObserver(function(list){ list.getEntries().forEach(function(e){ longN++; longMs += e.duration; longWin.push([performance.now(), e.duration]); }); }); po.observe({ entryTypes:['longtask'] }); } catch(e){ po = null; } }
+    function row(k, v, cls){ return '<div class="dbg-row'+(cls ? ' '+cls : '')+'"><span>'+k+'</span><b>'+v+'</b></div>'; }
+    function head(t){ return '<div class="dbg-h">'+t+'</div>'; }
+    function render(){
+      var n = net(), now = performance.now(); if(bytes0 < 0){ bytes0 = n.wire; bytesT = now; } else if(now - bytesT >= 1000){ rate = (n.wire - bytes0)/((now - bytesT)/1000); bytes0 = n.wire; bytesT = now; }
+      var mem = performance.memory, con = navigator.connection || navigator.mozConnection || navigator.webkitConnection, lb = longBusy(), cpu = Math.max(busy(), lb.pct);
+      var wins = Object.keys(WM.wins), foc = wins.filter(function(k){ return WM.wins[k].el.classList.contains('focus'); })[0], game = document.querySelector('.gm-stage'), gm = game && game.tigGame, gname = document.querySelector('.gm-name'), wall = document.getElementById('wallgl'), pets = document.querySelectorAll('.pet'), pet3 = window.tigPets && window.tigPets.peek ? window.tigPets.peek() : null;
+      var up = Math.round(now/1000), ls = 0; try { for(var i = 0; i < localStorage.length; i++){ var key = localStorage.key(i); ls += key.length + (localStorage.getItem(key) || '').length; } } catch(e){}
+      if(!batteryAsked && navigator.getBattery){ batteryAsked = true; navigator.getBattery().then(function(b){ battery = b; }).catch(function(){}); }
+      var html = head('frames')+row('fps', fps+(fps < 30 ? ' <i>slow</i>' : ''), fps < 30 ? 'bad' : '')+row('frame', ema.toFixed(1)+' ms avg  \u00b7  worst '+worstShown.toFixed(0)+' ms')+row('refresh', (screen && screen.refreshRate ? screen.refreshRate+' Hz' : (fps >= 100 ? '~120 Hz' : '~60 Hz')))+
+        head('main thread')+row('busy', cpu+'%'+(cpu > 60 ? ' <i>hot</i>' : ''), cpu > 60 ? 'bad' : '')+row('timer lag', busy()+'%  <i>(100 ms timer drift)</i>')+row('long tasks', (window.PerformanceObserver ? lb.n+' in 5 s  \u00b7  '+longN+' total, '+Math.round(longMs)+' ms' : 'not exposed'))+row('cores', (navigator.hardwareConcurrency || '?')+(navigator.deviceMemory ? '  \u00b7  '+navigator.deviceMemory+' GB device memory' : ''))+
+        head('memory')+(mem ? row('js heap', fmtB(mem.usedJSHeapSize)+' used  \u00b7  '+fmtB(mem.totalJSHeapSize)+' allocated')+row('heap limit', fmtB(mem.jsHeapSizeLimit)) : row('js heap', 'not exposed by this browser'))+row('dom nodes', document.getElementsByTagName('*').length)+row('localStorage', fmtB(ls*2)+' in '+(function(){ try { return localStorage.length; } catch(e){ return '?'; } })()+' keys')+
+        head('network')+row('downloaded', fmtB(n.wire)+' on the wire  \u00b7  '+fmtB(n.body)+' decoded')+row('rate', fmtB(Math.max(0, rate))+'/s')+row('resources', n.n+' ('+Object.keys(n.kinds).map(function(k){ return n.kinds[k]+' '+k; }).join(', ')+')'+(n.cached ? '  \u00b7  '+n.cached+' from cache' : ''))+
+        row('connection', (navigator.onLine ? 'online' : '<i>offline</i>')+(con ? '  \u00b7  '+(con.effectiveType || '')+(con.downlink ? '  \u00b7  '+con.downlink+' Mbps' : '')+(con.rtt ? '  \u00b7  '+con.rtt+' ms rtt' : '')+(con.saveData ? '  \u00b7  data saver' : '') : ''))+
+        (n.nav ? row('page load', Math.round(n.nav.responseStart)+' ms ttfb  \u00b7  '+Math.round(n.nav.domContentLoadedEventEnd)+' ms dcl  \u00b7  '+Math.round(n.nav.loadEventEnd || 0)+' ms load'+(n.nav.deliveryType === 'cache' || n.nav.transferSize === 0 ? '  \u00b7  cached' : '')) : '')+
+        head('device')+row('viewport', innerWidth+'\u00d7'+innerHeight+'  \u00b7  '+(window.devicePixelRatio || 1)+'x dpr  \u00b7  screen '+screen.width+'\u00d7'+screen.height)+row('platform', (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '?'+(navigator.maxTouchPoints ? '  \u00b7  touch' : ''))+row('gpu', (function(){ var c = document.createElement('canvas'), g = c.getContext('webgl'); if(!g) return 'no webgl'; var d = g.getExtension('WEBGL_debug_renderer_info'); return d ? String(g.getParameter(d.UNMASKED_RENDERER_WEBGL)).slice(0, 48) : 'webgl'; })())+
+        row('battery', battery ? Math.round(battery.level*100)+'%'+(battery.charging ? ' charging' : '') : (navigator.getBattery ? '\u2026' : 'not exposed'))+row('locale', navigator.language+'  \u00b7  '+(Intl.DateTimeFormat().resolvedOptions().timeZone || ''))+
+        head('tigos')+row('uptime', Math.floor(up/60)+' min '+(up%60)+' s')+row('user', USER.name+'  \u00b7  '+PREF.theme+'  \u00b7  '+PREF.accent)+row('windows', wins.length+(foc ? '  \u00b7  focus '+foc : '')+(wins.length ? '  \u00b7  '+wins.join(', ') : ''))+
+        row('pets', pets.length+(pet3 ? '  \u00b7  gl '+(pet3.gl ? 'on' : 'off')+(typeof pet3.insts === 'number' ? '  \u00b7  '+pet3.insts+' drawn' : '') : ''))+row('arcade', gm ? (gname ? gname.textContent : 'game')+(gm.peek ? (function(){ try { var p = gm.peek(); return '  \u00b7  '+(p.state || p.phase || '')+(p.score !== undefined ? '  \u00b7  score '+p.score : ''); } catch(e){ return ''; } })() : '') : 'closed')+
+        row('wallpaper', wall ? (wall.classList.contains('on') ? 'webgl  \u00b7  '+(wall.getAttribute('data-frames') || 0)+' frames  \u00b7  '+(wall.getAttribute('data-pal') || 'chase') : 'css'+(wall.getAttribute('data-soft') === '1' ? '  (software gl)' : '')) : '?')+row('version', root.getAttribute('data-version') || '?');
+      panEl.innerHTML = '<div class="dbg-top"><b>debug</b><span>'+fps+' fps  \u00b7  '+cpu+'% busy</span><button type="button" data-dbg-close aria-label="Close">\u00d7</button></div>'+html;
+    }
+    function ensure(){ if(!fpsEl){ fpsEl = document.createElement('div'); fpsEl.className = 'fps-hud'; fpsEl.id = 'fpsHud'; fpsEl.hidden = true; fpsEl.textContent = '-- fps'; root.appendChild(fpsEl); }
+      if(!panEl){ panEl = document.createElement('div'); panEl.className = 'dbg-hud'; panEl.id = 'dbgHud'; panEl.hidden = true; root.appendChild(panEl); panEl.addEventListener('click', function(e){ if(e.target.closest('[data-dbg-close]')) DBG.debug(false); }); } }
+    function start(){ observe(); if(!raf){ last = 0; frames = 0; fpsT = performance.now(); raf = requestAnimationFrame(loop); } if(!lagT){ lagT = 0; lagTick(); } }
+    return {
+      fps:function(want){ ensure(); var show = want === undefined ? fpsEl.hidden : !!want; fpsEl.hidden = !show; if(show) start(); return show; },
+      debug:function(want){ ensure(); var show = want === undefined ? panEl.hidden : !!want; panEl.hidden = !show; if(show){ opened = performance.now(); bytes0 = -1; rate = 0; refreshT = 0; start(); render(); } return show; },
+      on:on, peek:function(){ return { fps:fps, ema:+ema.toFixed(2), worst:+worstShown.toFixed(1), busy:busy(), longTasks:longN, running:!!raf, fpsOn:!!(fpsEl && !fpsEl.hidden), debugOn:!!(panEl && !panEl.hidden), lagSamples:lagSamples.length }; } };
+  })();
+  window.tigDebug = DBG;   /* the test suite and the console read it */
+  EXTRA_CMDS.fps = function(a, T){ var off = /^(off|stop|no|hide|0)$/i.test((a || '').trim()); var show = DBG.fps(off ? false : (/^(on|show|1)$/i.test((a || '').trim()) ? true : undefined)); T.print(show ? 'fps counter on, top right. '+T.o('fps')+' again turns it off.' : 'fps counter off.', 'ok'); };
+  EXTRA_CMDS.debug = function(a, T){ var off = /^(off|stop|no|hide|close|0)$/i.test((a || '').trim()); var show = DBG.debug(off ? false : (/^(on|show|1)$/i.test((a || '').trim()) ? true : undefined)); T.print(show ? 'debug overlay on: frames, main thread, memory, network, device and tigOS state, live. '+T.o('debug')+' again or its \u00d7 closes it.' : 'debug overlay off.', 'ok'); };
+  EXTRA_CMDS.perf = function(a, T){ EXTRA_CMDS.debug(a, T); }; EXTRA_CMDS.top = function(a, T){ EXTRA_CMDS.debug(a, T); }; EXTRA_CMDS.htop = function(a, T){ EXTRA_CMDS.debug(a, T); };
 /* tigOS core app.js, part 28: boot. The parts in this folder are concatenated in name order by build.py, so they share one scope. */
   /* ---------------- boot ---------------- */
   var booted = false;
