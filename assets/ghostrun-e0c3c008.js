@@ -41,13 +41,13 @@
   /* ---------- sound: footsteps on the boards, a whoosh for the jump and the slide, a candle chime, a thud and a ghost wail on a hit, a door boom at each turn, thunder with the lightning, a low drone that rises with the threat ---------- */
   function Synth(){
     var ac = null, muted = false, master, drone, droneG, droneF, stepT = 0;
-    function ctx(){ if(ac || muted) return ac; try { ac = new (window.AudioContext || window.webkitAudioContext)(); master = ac.createGain(); master.gain.value = .5*SET.vol; var comp = ac.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 5; master.connect(comp); comp.connect(ac.destination); } catch(e){ ac = null; } return ac; }
+    function ctx(){ if(ac){ if(window.TIG_AUDIO) window.TIG_AUDIO.resume(); return ac; } if(muted) return null; try { ac = window.TIG_AUDIO ? window.TIG_AUDIO.ctx() : new (window.AudioContext || window.webkitAudioContext)(); if(!ac) throw 0; master = ac.createGain(); master.gain.value = .5*SET.vol; var comp = ac.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 5; master.connect(comp); comp.connect(ac.destination); } catch(e){ ac = null; } return ac; }
     function noise(dur, freq, gain, q, type, delay, curve){ var a = ctx(); if(!a) return; var n = a.sampleRate*dur | 0, b = a.createBuffer(1, n, a.sampleRate), d = b.getChannelData(0); for(var i = 0; i < n; i++) d[i] = (Math.random()*2 - 1)*Math.pow(1 - i/n, curve || 2); var s = a.createBufferSource(); s.buffer = b; var f = a.createBiquadFilter(); f.type = type || 'lowpass'; f.frequency.value = freq; f.Q.value = q || 1; var g = a.createGain(); g.gain.value = gain; s.connect(f); f.connect(g); g.connect(master); s.start(a.currentTime + (delay || 0)); }
     function tone(type, f0, f1, dur, gain, delay, attack){ var a = ctx(); if(!a) return; var t0 = a.currentTime + (delay || 0), o = a.createOscillator(), g = a.createGain(); o.type = type; o.frequency.setValueAtTime(Math.max(20, f0), t0); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t0 + dur); if(attack){ g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(gain, t0 + attack); } else g.gain.setValueAtTime(gain, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur); o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + dur + .02); }
     function ensureDrone(){ var a = ctx(); if(!a || drone) return; drone = a.createOscillator(); drone.type = 'sawtooth'; drone.frequency.value = 48; droneF = a.createBiquadFilter(); droneF.type = 'lowpass'; droneF.frequency.value = 160; droneG = a.createGain(); droneG.gain.value = 0; drone.connect(droneF); droneF.connect(droneG); droneG.connect(master); drone.start(); }
     return {
-      toggle:function(){ muted = !muted; if(muted && ac){ try { ac.suspend(); } catch(e){} } else if(ac){ try { ac.resume(); } catch(e){} } return muted; },
-      volume:function(v){ if(master) master.gain.value = .5*v; },
+      toggle:function(){ muted = !muted; if(master) master.gain.value = muted ? 0 : .5*SET.vol; return muted; },   /* mute is a gain, never a suspended context: the context is shared and a gesture would resume it */
+      volume:function(v){ if(master && !muted) master.gain.value = .5*v; },
       step:function(dt, speed, on){ stepT -= dt; if(stepT <= 0 && on){ stepT = .36/Math.max(.5, speed); noise(.06, 900 + Math.random()*400, .35, 1, 'bandpass'); tone('sine', 120, 60, .05, .12); } },
       jump:function(){ noise(.25, 1800, .3, .6, 'bandpass', 0, 1.5); tone('sine', 300, 700, .22, .08); },
       slide:function(){ noise(.35, 700, .4, .8, 'lowpass', 0, 1.2); },
@@ -58,7 +58,7 @@
       thunder:function(){ noise(1.8, 220, 1.1, .4, 'lowpass', .12, 1.3); tone('sine', 60, 25, 1.6, .5, .15); noise(.03, 6000, .5, .5, 'highpass'); },
       bats:function(){ for(var i = 0; i < 5; i++) tone('square', 2400 + Math.random()*1200, 1800, .04, .02, i*.09 + Math.random()*.04); },
       drone:function(threat){ ensureDrone(); if(!droneG) return; var t = ac.currentTime; droneG.gain.setTargetAtTime(.02 + threat*.12, t, .3); droneF.frequency.setTargetAtTime(160 + threat*500, t, .3); },
-      close:function(){ if(ac){ try { ac.close(); } catch(e){} } ac = null; drone = null; } };
+      close:function(){ try { if(drone) drone.stop(); } catch(e){} try { if(master) master.disconnect(); } catch(e){} ac = null; master = null; drone = null; } };   /* the context stays open for the next game; only this game's graph goes */
   }
 /* tigOS arcade, Ghost Run part 01: the simulation, ported from the canvas game as is: three lanes, a unit depth z that every obstacle travels
    from 0 (the far end) to 1.08 (behind you) at `speed` per second with the runner at PZ = .86, jump and slide windows of .6 s, forks and one-way

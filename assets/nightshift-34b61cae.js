@@ -630,7 +630,7 @@
    that nobody can make out. The box has a music box in it, the Forge a hammer, the vendors a bottle. Dying gets its own drone. No audio files. */
   function Synth(){
     var ac = null, muted = false, master, dry, verb, wet, hum, humG, rumble, rumbleG, rumbleF, squeal, squealG, clackT = 0, spinO, spinG, spinF, boxT = 0;
-    function ctx(){ if(ac || muted) return ac; try { ac = new (window.AudioContext || window.webkitAudioContext)(); master = ac.createGain(); master.gain.value = .5*SET.vol; var comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 6; master.connect(comp); comp.connect(ac.destination);
+    function ctx(){ if(ac){ if(window.TIG_AUDIO) window.TIG_AUDIO.resume(); return ac; } if(muted) return null; try { ac = window.TIG_AUDIO ? window.TIG_AUDIO.ctx() : new (window.AudioContext || window.webkitAudioContext)(); if(!ac) throw 0; master = ac.createGain(); master.gain.value = .5*SET.vol; var comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 6; master.connect(comp); comp.connect(ac.destination);
         dry = ac.createGain(); dry.gain.value = 1; dry.connect(master); verb = ac.createConvolver(); verb.buffer = impulse(2.1, 2.2); wet = ac.createGain(); wet.gain.value = .3; verb.connect(wet); wet.connect(master); } catch(e){ ac = null; } return ac; }
     function impulse(dur, decay){ var n = ac.sampleRate*dur | 0, b = ac.createBuffer(2, n, ac.sampleRate); for(var c = 0; c < 2; c++){ var d = b.getChannelData(c); for(var i = 0; i < n; i++){ var k = i/n; d[i] = (Math.random()*2 - 1)*Math.pow(1 - k, decay)*(i < 2000 ? i/2000 : 1); } } return b; }
     function out(node, send){ node.connect(dry); if(send){ var g = ac.createGain(); g.gain.value = send; node.connect(g); g.connect(verb); } }
@@ -661,8 +661,8 @@
       squeal = a.createOscillator(); squeal.type = 'sine'; squeal.frequency.value = 2800; squealG = a.createGain(); squealG.gain.value = 0; var sv = a.createOscillator(), svg = a.createGain(); sv.frequency.value = 9; svg.gain.value = 60; sv.connect(svg); svg.connect(squeal.frequency); squeal.connect(squealG); squealG.connect(master); squealG.connect(verb); squeal.start(); sv.start();
       spinO = a.createOscillator(); spinO.type = 'sawtooth'; spinO.frequency.value = 80; spinF = a.createBiquadFilter(); spinF.type = 'bandpass'; spinF.Q.value = 6; spinF.frequency.value = 400; spinG = a.createGain(); spinG.gain.value = 0; spinO.connect(spinF); spinF.connect(spinG); spinG.connect(master); spinO.start(); }
     return {
-      toggle:function(){ muted = !muted; if(muted && ac){ try { ac.suspend(); } catch(e){} } else if(ac){ try { ac.resume(); } catch(e){} } return muted; }, isMuted:function(){ return muted; },
-      volume:function(v){ if(master) master.gain.value = .5*v; },
+      toggle:function(){ muted = !muted; if(master) master.gain.value = muted ? 0 : .5*SET.vol; return muted; }, isMuted:function(){ return muted; },   /* mute is a gain, never a suspended context: the context is shared and a gesture would resume it */
+      volume:function(v){ if(master && !muted) master.gain.value = .5*v; },
       ambient:function(on){ ensureLoops(); if(humG) humG.gain.value = on ? .012 : 0; },
       /* the train: rumble pitched to its speed, wheel clack on the joints, squeal on the brakes; riding inside it is all body and less air */
       train:function(speed, braking, inside){ ensureLoops(); if(!rumbleG) return; var s = clamp(speed/16, 0, 1), on = speed > 0 ? 1 : 0; rumbleG.gain.value = Math.min(.95, s*(inside ? 1.4 : 1.1))*on; rumbleF.frequency.value = (inside ? 40 : 60) + s*(inside ? 140 : 260); squealG.gain.value = braking && speed > 2 ? Math.min(.09, s*.14) : 0; if(squeal) squeal.frequency.value = 2400 + s*900;
@@ -696,7 +696,7 @@
       /* dying: a drone that goes on under the card, a heartbeat, and the sting when the shift is read back */
       death:function(){ tone('sawtooth', 55, 38, 4.5, .22, .9, 0, .6); tone('sawtooth', 55.7, 39, 4.5, .18, .9, 0, .6); noise(4, 220, .3, .4, .9, 'lowpass', .2, 1); [0, .9, 1.8, 2.8].forEach(function(d){ tone('sine', 60, 35, .22, .5, .4, d); tone('sine', 50, 30, .2, .3, .4, d + .24); }); formant(110, 60, 2.6, .07, 500, 4, 3, .8); },
       endSting:function(){ [110, 116.5, 164.8, 220].forEach(function(f, i){ tone('sawtooth', f, f*.985, 3.2, .06, 1, i*.05, .8); }); tone('sine', 41, 30, 3.6, .3, .9, 0, .4); noise(2.4, 300, .12, .4, 1, 'lowpass', 0, 1); },
-      close:function(){ if(ac){ try { ac.close(); } catch(e){} ac = null; hum = null; } } };
+      close:function(){ [hum, rumble, squeal, spinO].forEach(function(o){ try { if(o) o.stop(); } catch(e){} }); try { if(master) master.disconnect(); } catch(e){} ac = null; master = null; hum = null; rumble = null; squeal = null; spinO = null; } };   /* the context stays open for the next game; only this game's graph goes */
   }
 /* tigOS arcade, Nightshift part 05: the rules. Waves, points, the economy (grates, wall buys, resupply, the box, perks, power, the Forge),
    the dead and how they move, the guns and how they hit, grenades, the train. nightshift(api) opens here and closes in part 06. */

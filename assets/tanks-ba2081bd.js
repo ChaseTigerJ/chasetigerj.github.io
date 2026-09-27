@@ -44,13 +44,13 @@
      crater, a hull hit clanks, tracks hum while a tank drives, coins ring, the shop clicks. No audio files. ---------- */
   function Synth(){
     var ac = null, muted = false, master, drive, driveG, driveF;
-    function ctx(){ if(ac || muted) return ac; try { ac = new (window.AudioContext || window.webkitAudioContext)(); master = ac.createGain(); master.gain.value = .5*SET.vol; var comp = ac.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 5; master.connect(comp); comp.connect(ac.destination); } catch(e){ ac = null; } return ac; }
+    function ctx(){ if(ac){ if(window.TIG_AUDIO) window.TIG_AUDIO.resume(); return ac; } if(muted) return null; try { ac = window.TIG_AUDIO ? window.TIG_AUDIO.ctx() : new (window.AudioContext || window.webkitAudioContext)(); if(!ac) throw 0; master = ac.createGain(); master.gain.value = .5*SET.vol; var comp = ac.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 5; master.connect(comp); comp.connect(ac.destination); } catch(e){ ac = null; } return ac; }
     function noise(dur, freq, gain, q, type, delay, curve){ var a = ctx(); if(!a) return; var n = a.sampleRate*dur | 0, b = a.createBuffer(1, n, a.sampleRate), d = b.getChannelData(0); for(var i = 0; i < n; i++) d[i] = (Math.random()*2 - 1)*Math.pow(1 - i/n, curve || 2); var s = a.createBufferSource(); s.buffer = b; var f = a.createBiquadFilter(); f.type = type || 'lowpass'; f.frequency.value = freq; f.Q.value = q || 1; var g = a.createGain(); g.gain.value = gain; s.connect(f); f.connect(g); g.connect(master); s.start(a.currentTime + (delay || 0)); }
     function tone(type, f0, f1, dur, gain, delay, attack){ var a = ctx(); if(!a) return; var t0 = a.currentTime + (delay || 0), o = a.createOscillator(), g = a.createGain(); o.type = type; o.frequency.setValueAtTime(Math.max(20, f0), t0); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t0 + dur); if(attack){ g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(gain, t0 + attack); } else g.gain.setValueAtTime(gain, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur); o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + dur + .02); }
     function ensureDrive(){ var a = ctx(); if(!a || drive) return; drive = a.createOscillator(); drive.type = 'sawtooth'; drive.frequency.value = 55; driveF = a.createBiquadFilter(); driveF.type = 'lowpass'; driveF.frequency.value = 260; driveG = a.createGain(); driveG.gain.value = 0; drive.connect(driveF); driveF.connect(driveG); driveG.connect(master); drive.start(); }
     return {
-      toggle:function(){ muted = !muted; if(muted && ac){ try { ac.suspend(); } catch(e){} } else if(ac){ try { ac.resume(); } catch(e){} } return muted; },
-      volume:function(v){ if(master) master.gain.value = .5*v; },
+      toggle:function(){ muted = !muted; if(master) master.gain.value = muted ? 0 : .5*SET.vol; return muted; },   /* mute is a gain, never a suspended context: the context is shared and a gesture would resume it */
+      volume:function(v){ if(master && !muted) master.gain.value = .5*v; },
       fire:function(nuke){ noise(.02, 5000, 1.1, .5, 'highpass'); noise(.5, 500, 1.2, .6); tone('sine', nuke ? 90 : 150, 34, .45, .8); tone('triangle', 70, 28, .5, .35); if(nuke) tone('sawtooth', 60, 20, 1.2, .25, .1); },
       whistle:function(){ tone('sine', 1800, 700, 1.1, .05, .5, .3); },
       boom:function(size, hull){ var s = clamp(size, .8, 3); noise(.03, 6000, .8, .5, 'highpass'); noise(.5*s, 420/s, 1.4, .5, 'lowpass', 0, 1.6); tone('sine', 120/s*1.6, 26, .5*s, .9); if(hull){ tone('square', 900, 300, .12, .18); noise(.15, 3200, .5, 3, 'bandpass', .02); } if(s > 2){ noise(1.6, 120, 1.2, .3, 'lowpass', .1, 1.2); tone('sine', 40, 22, 1.8, .6, .15); } },
@@ -59,7 +59,7 @@
       ui:function(ok){ tone('square', ok ? 660 : 220, ok ? 880 : 180, .06, .05); },
       win:function(){ [523, 659, 784, 1046].forEach(function(f, i){ tone('triangle', f, f, .22, .14, i*.11); }); tone('sine', 1046, 1046, .5, .1, .44); },
       lose:function(){ [392, 330, 262, 196].forEach(function(f, i){ tone('sawtooth', f, f*.97, .3, .1, i*.16); }); },
-      close:function(){ if(ac){ try { ac.close(); } catch(e){} } ac = null; drive = null; } };
+      close:function(){ try { if(drive) drive.stop(); } catch(e){} try { if(master) master.disconnect(); } catch(e){} ac = null; master = null; drive = null; } };   /* the context stays open for the next game; only this game's graph goes */
   }
 /* tigOS arcade, Tanks part 01: the simulation, ported from the canvas game as is. Everything here is in field pixels (640 x 400, y down) and
    pixels per second: terrain, wind, shells under gravity G, fuel spent per pixel driven, damage, coins, the shop and the cpu gunners. The
