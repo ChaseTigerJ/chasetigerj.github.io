@@ -1474,3 +1474,33 @@ html, body { margin:0 !important; padding:0 !important; height:100%; overflow:hi
 .gr-set select, .gr-set input { accent-color:#9a7cff; font:inherit; color:#f4f1ea; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); border-radius:6px; padding:2px 6px; }
 .gr-set input[type=range] { width:90px; padding:0; border:0; background:none; }
 .gr-set output { min-width:32px; }
+/* ===== Mines: the front menu (a DOM card over the canvas, the board behind it previews the shape and colours) ===== */
+.mn-menu { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:-apple-system, BlinkMacSystemFont, Inter, "Segoe UI", Roboto, sans-serif; color:#f4f1ea; user-select:none; background:rgba(8,8,14,.58); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); overflow:auto; }
+.mn-menu[hidden] { display:none; }
+.mn-panel { width:min(94%, 560px); padding:18px 24px; display:flex; flex-direction:column; gap:8px; pointer-events:auto; }
+.mn-panel h2 { margin:0; text-align:center; font-size:26px; font-weight:800; letter-spacing:.02em; }
+.mn-sub { margin:0; text-align:center; font-size:13px; color:rgba(255,255,255,.7); }
+.mn-rows { display:flex; flex-direction:column; gap:5px; margin-top:4px; }
+.mn-row { display:flex; align-items:center; gap:10px; font-size:12px; color:rgba(255,255,255,.7); min-height:28px; }
+.mn-lab { flex:none; width:66px; white-space:nowrap; font-weight:700; text-transform:uppercase; letter-spacing:.06em; font-size:10.5px; color:rgba(255,255,255,.55); }
+.mn-opts { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+.mn-opts button { all:unset; box-sizing:border-box; padding:4px 11px; min-width:34px; text-align:center; border-radius:999px; background:rgba(255,255,255,.06); border:2px solid transparent; color:rgba(255,255,255,.8); font-size:12px; font-weight:700; cursor:pointer; line-height:1.3; }
+.mn-opts button:hover { background:rgba(255,255,255,.11); }
+.mn-opts button.sel { background:rgba(255,95,87,.18); border-color:#ff5f57; color:#fff; }
+.mn-opts button.sw { width:26px; height:26px; min-width:0; padding:0; border-radius:50%; background:var(--c); border:3px solid transparent; box-shadow:inset 0 0 0 2px rgba(0,0,0,.35); transition:transform .15s; }
+.mn-opts button.sw:hover { background:var(--c); }
+.mn-opts button.sw.sel { border-color:#fff; background:var(--c); transform:scale(1.15); }
+.mn-vol { display:flex; align-items:center; gap:8px; font-size:11px; color:rgba(255,255,255,.65); }
+.mn-vol input[type=range] { width:120px; accent-color:#ff5f57; }
+.mn-vol output { min-width:34px; }
+.mn-hint { margin:2px 0 0; min-height:2.6em; text-align:center; font-size:11.5px; line-height:1.3; color:rgba(255,255,255,.62); }
+.mn-actions { display:flex; align-items:center; justify-content:center; gap:14px; }
+.mn-play { all:unset; box-sizing:border-box; padding:10px 34px; border-radius:999px; background:#ff5f57; color:#2a0a08; font-weight:800; font-size:15px; letter-spacing:.03em; cursor:pointer; box-shadow:0 6px 18px rgba(255,95,87,.3); }
+.mn-play:hover { filter:brightness(1.08); }
+.mn-reset { all:unset; box-sizing:border-box; padding:6px 12px; border-radius:999px; font-size:11px; font-weight:700; color:rgba(255,255,255,.6); border:1px solid rgba(255,255,255,.18); cursor:pointer; }
+.mn-reset:hover { color:#fff; border-color:rgba(255,255,255,.4); }
+.mn-reset[hidden] { display:none; }
+.mn-foot { margin:0; text-align:center; font-size:11px; color:rgba(255,255,255,.6); }
+.mn-menu button, .mn-menu input { -webkit-tap-highlight-color:transparent; }
+@media (max-height:520px) { .mn-panel { gap:4px; padding:10px 16px; } .mn-panel h2 { font-size:20px; } .mn-sub, .mn-hint { display:none; } .mn-rows { gap:2px; } .mn-row { min-height:24px; } .mn-opts button { padding:2px 9px; font-size:11px; } .mn-opts button.sw { width:20px; height:20px; } .mn-play { padding:6px 26px; font-size:13px; } }
+@media (max-width:420px) { .mn-panel { padding:14px 10px; } .mn-lab { width:60px; font-size:9px; letter-spacing:.04em; } .mn-opts button { padding:4px 9px; font-size:11px; } }
