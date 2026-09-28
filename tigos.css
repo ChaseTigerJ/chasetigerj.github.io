@@ -1454,11 +1454,11 @@ html, body { margin:0 !important; padding:0 !important; height:100%; overflow:hi
 .gr-hint { top:16%; font-size:12px; color:rgba(255,255,255,.8); }
 .gr-fork { top:22%; font-size:clamp(14px, 2.6vmin, 20px); font-weight:800; color:#ffd166; animation:grFork .7s steps(2) infinite; }
 @keyframes grFork { to { color:#fff; } }
-.gr-door { top:38%; display:flex; flex-direction:column; align-items:center; gap:4px; color:#f4f1ea; z-index:3; }   /* the caption rides above the blackout */
+.gr-door { top:38%; display:flex; flex-direction:column; align-items:center; gap:4px; color:#f4f1ea; z-index:3; }
 .gr-door b { font-size:44px; line-height:1; color:#f4e3b0; }
 .gr-door span { font-size:clamp(15px, 2.8vmin, 22px); font-weight:800; }
 .gr-door small { font-size:11px; color:rgba(255,255,255,.6); }
-.gr-dark { position:absolute; inset:0; background:#020108; opacity:0; pointer-events:none; z-index:2; }   /* the doorway blackout: painted by the frame, so the theme swap under it never shows */
+.gr-dark { position:absolute; inset:0; background:#020108; opacity:0; pointer-events:none; z-index:2; }   /* kept for the HUD's sake; the doorway no longer blacks out, so the frame holds it at 0 */
 .gr-menu { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:-apple-system, BlinkMacSystemFont, Inter, "Segoe UI", Roboto, sans-serif; color:#f4f1ea; user-select:none; background:linear-gradient(rgba(8,6,14,.25), rgba(8,6,14,.7)); overflow:auto; }
 .gr-menu[hidden] { display:none; }
 .gr-panel { width:min(92%, 400px); padding:22px 26px; display:flex; flex-direction:column; align-items:center; gap:14px; pointer-events:auto; }
@@ -1474,6 +1474,14 @@ html, body { margin:0 !important; padding:0 !important; height:100%; overflow:hi
 .gr-set select, .gr-set input { accent-color:#9a7cff; font:inherit; color:#f4f1ea; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); border-radius:6px; padding:2px 6px; }
 .gr-set input[type=range] { width:90px; padding:0; border:0; background:none; }
 .gr-set output { min-width:32px; }
+.gr-look { display:flex; flex-direction:column; gap:5px; width:100%; }   /* the runner's look: a row of swatches per part */
+.gr-row { display:flex; align-items:center; gap:10px; min-height:26px; }
+.gr-lab { width:64px; flex:none; text-align:right; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,255,255,.55); }
+.gr-opts { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+.gr-opts button.sw { all:unset; box-sizing:border-box; width:24px; height:24px; border-radius:50%; background:var(--c); border:3px solid transparent; box-shadow:inset 0 0 0 2px rgba(0,0,0,.35); cursor:pointer; transition:transform .15s; }
+.gr-opts button.sw:hover { transform:scale(1.1); }
+.gr-opts button.sw.sel { border-color:#fff; transform:scale(1.15); }
+@media (max-height:560px) { .gr-panel { gap:8px; padding:12px 18px; } .gr-panel h2 { font-size:24px; } .gr-sub, .gr-foot { display:none; } .gr-row { min-height:20px; } .gr-opts button.sw { width:18px; height:18px; } }
 /* ===== Game front menus (Mines first, now every canvas game through gameMenu() in games/00-setup.js): a DOM card over the canvas, the game's own backdrop behind it. --mnc is the game's accent ===== */
 .mn-menu { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:-apple-system, BlinkMacSystemFont, Inter, "Segoe UI", Roboto, sans-serif; color:#f4f1ea; user-select:none; background:rgba(8,8,14,.58); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); overflow:auto; }
 .mn-menu[hidden] { display:none; }
